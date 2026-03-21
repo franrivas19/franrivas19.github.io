@@ -283,11 +283,11 @@ document.querySelectorAll('.btn-download').forEach(btn => {
             if (isAndroid) {
                 // Replace with actual Android APK download link
                 console.log('Starting Android download...');
-                window.location.href = 'https://your-app-url/download/gambeta.apk';
+                window.location.href = 'https://your-app-url/download/scarpa.apk';
             } else if (isLinux) {
                 // Replace with actual Linux download link
                 console.log('Starting Linux download...');
-                window.location.href = 'https://your-app-url/download/gambeta-linux';
+                window.location.href = 'https://your-app-url/download/scarpa-linux';
             } else {
                 // Web app link
                 window.location.href = '/app';
@@ -337,4 +337,4 @@ document.addEventListener('touchmove', (e) => {
     }
 });
 
-console.log('🚀 Gambeta Landing Page Loaded - All systems ready!');
+console.log('🚀 scarpa Landing Page Loaded - All systems ready!');

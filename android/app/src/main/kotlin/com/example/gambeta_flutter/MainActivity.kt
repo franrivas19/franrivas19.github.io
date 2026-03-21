@@ -1,4 +1,4 @@
-package com.example.gambeta_flutter
+package com.rivas.scarpa
 
 import io.flutter.embedding.android.FlutterActivity
 

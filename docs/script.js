@@ -5,19 +5,28 @@
 function detectOS() {
     const ua = navigator.userAgent;
     const isAndroid = /Android/.test(ua);
+    const isIOS = /iPhone|iPad|iPod/.test(ua);
     const isLinux = /Linux/.test(ua) && !/Android/.test(ua);
     const isMobile = /Mobile|iPhone|iPad/.test(ua);
     
     const androidOption = document.getElementById('android-option');
+    const iosOption = document.getElementById('ios-option');
     const linuxOption = document.getElementById('linux-option');
     const osDetector = document.querySelector('.os-detector');
     
     // Reset all display
     if (androidOption) androidOption.style.display = 'none';
+    if (iosOption) iosOption.style.display = 'none';
     if (linuxOption) linuxOption.style.display = 'none';
     
     // Show appropriate download option
-    if (isAndroid || (isMobile && !isLinux)) {
+    if (isIOS) {
+        if (iosOption) {
+            iosOption.style.display = 'block';
+            iosOption.classList.add('animate-in');
+        }
+        if (osDetector) osDetector.innerHTML = '<p>✅ iOS detectado - Descarga optimizada para ti</p>';
+    } else if (isAndroid || (isMobile && !isLinux)) {
         if (androidOption) {
             androidOption.style.display = 'block';
             androidOption.classList.add('animate-in');
@@ -32,6 +41,7 @@ function detectOS() {
     } else {
         // Show both for other systems
         if (androidOption) androidOption.style.display = 'block';
+        if (iosOption) iosOption.style.display = 'block';
         if (linuxOption) linuxOption.style.display = 'block';
         if (osDetector) osDetector.innerHTML = '<p>Selecciona tu sistema operativo</p>';
     }
@@ -278,12 +288,17 @@ document.querySelectorAll('.btn-download').forEach(btn => {
         const platform = this.closest('.download-option');
         if (platform) {
             const isAndroid = platform.id === 'android-option';
+            const isIOS = platform.id === 'ios-option';
             const isLinux = platform.id === 'linux-option';
             
             if (isAndroid) {
                 // Replace with actual Android APK download link
                 console.log('Starting Android download...');
                 window.location.href = 'https://your-app-url/download/scarpa.apk';
+            } else if (isIOS) {
+                // Replace with actual iOS app download link
+                console.log('Starting iOS download...');
+                window.location.href = 'https://your-app-url/download/scarpa-ios.ipa';
             } else if (isLinux) {
                 // Replace with actual Linux download link
                 console.log('Starting Linux download...');

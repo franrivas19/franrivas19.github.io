@@ -1,4 +1,4 @@
-# gambeta_flutter
+# Scarpa
 
 A new Flutter project.
 

@@ -24,6 +24,43 @@ jobs:
         with:
           channel: stable
 
+      - name: Generar lib/secret.dart desde Secrets
+        run: |
+          mkdir -p lib
+          cat > lib/secret.dart << 'EOF'
+          import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+
+          const FirebaseOptions web = FirebaseOptions(
+              apiKey: '${{ secrets.FIREBASE_WEB_API_KEY }}',
+              appId: '${{ secrets.FIREBASE_WEB_APP_ID }}',
+              messagingSenderId: '${{ secrets.FIREBASE_MESSAGING_ID }}',
+              projectId: '${{ secrets.FIREBASE_PROJECT_ID }}',
+              authDomain: '${{ secrets.FIREBASE_AUTH_DOMAIN }}',
+              databaseURL: '${{ secrets.FIREBASE_DATABASE_URL }}',
+              storageBucket: '${{ secrets.FIREBASE_STORAGE_BUCKET }}',
+              measurementId: '${{ secrets.FIREBASE_MEASUREMENT_ID }}',
+            );
+
+          const FirebaseOptions android = FirebaseOptions(
+              apiKey: '${{ secrets.FIREBASE_ANDROID_API_KEY }}',
+              appId: '${{ secrets.FIREBASE_ANDROID_APP_ID }}',
+              messagingSenderId: '${{ secrets.FIREBASE_MESSAGING_ID }}',
+              projectId: '${{ secrets.FIREBASE_PROJECT_ID }}',
+              databaseURL: '${{ secrets.FIREBASE_DATABASE_URL }}',
+              storageBucket: '${{ secrets.FIREBASE_STORAGE_BUCKET }}',
+            );
+
+          const FirebaseOptions ios = FirebaseOptions(
+              apiKey: '${{ secrets.FIREBASE_IOS_API_KEY }}',
+              appId: '${{ secrets.FIREBASE_IOS_APP_ID }}',
+              messagingSenderId: '${{ secrets.FIREBASE_MESSAGING_ID }}',
+              projectId: '${{ secrets.FIREBASE_PROJECT_ID }}',
+              databaseURL: '${{ secrets.FIREBASE_DATABASE_URL }}',
+              storageBucket: '${{ secrets.FIREBASE_STORAGE_BUCKET }}',
+              iosBundleId: '${{ secrets.FIREBASE_IOS_BUNDLE_ID }}',
+            );
+          EOF
+
       - name: Instalar dependencias
         run: flutter pub get
 
@@ -48,6 +85,43 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+
+      - name: Generar lib/secret.dart desde Secrets
+        run: |
+          mkdir -p lib
+          cat > lib/secret.dart << 'EOF'
+          import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+
+          const FirebaseOptions web = FirebaseOptions(
+              apiKey: '${{ secrets.FIREBASE_WEB_API_KEY }}',
+              appId: '${{ secrets.FIREBASE_WEB_APP_ID }}',
+              messagingSenderId: '${{ secrets.FIREBASE_MESSAGING_ID }}',
+              projectId: '${{ secrets.FIREBASE_PROJECT_ID }}',
+              authDomain: '${{ secrets.FIREBASE_AUTH_DOMAIN }}',
+              databaseURL: '${{ secrets.FIREBASE_DATABASE_URL }}',
+              storageBucket: '${{ secrets.FIREBASE_STORAGE_BUCKET }}',
+              measurementId: '${{ secrets.FIREBASE_MEASUREMENT_ID }}',
+            );
+
+          const FirebaseOptions android = FirebaseOptions(
+              apiKey: '${{ secrets.FIREBASE_ANDROID_API_KEY }}',
+              appId: '${{ secrets.FIREBASE_ANDROID_APP_ID }}',
+              messagingSenderId: '${{ secrets.FIREBASE_MESSAGING_ID }}',
+              projectId: '${{ secrets.FIREBASE_PROJECT_ID }}',
+              databaseURL: '${{ secrets.FIREBASE_DATABASE_URL }}',
+              storageBucket: '${{ secrets.FIREBASE_STORAGE_BUCKET }}',
+            );
+
+          const FirebaseOptions ios = FirebaseOptions(
+              apiKey: '${{ secrets.FIREBASE_IOS_API_KEY }}',
+              appId: '${{ secrets.FIREBASE_IOS_APP_ID }}',
+              messagingSenderId: '${{ secrets.FIREBASE_MESSAGING_ID }}',
+              projectId: '${{ secrets.FIREBASE_PROJECT_ID }}',
+              databaseURL: '${{ secrets.FIREBASE_DATABASE_URL }}',
+              storageBucket: '${{ secrets.FIREBASE_STORAGE_BUCKET }}',
+              iosBundleId: '${{ secrets.FIREBASE_IOS_BUNDLE_ID }}',
+            );
+          EOF
 
       - name: Instalar dependencias
         run: flutter pub get

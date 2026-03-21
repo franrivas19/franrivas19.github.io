@@ -1,0 +1,29 @@
+name: Crear Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Activa el workflow cuando se hace push de un tag v1.0, v2.1.2, etc.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Necesario para crear la release
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Crear Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token automático de GitHub
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            Cambios en esta versión:
+            - [Añadir descripción automática o manual]
+          draft: false
+          prerelease: false

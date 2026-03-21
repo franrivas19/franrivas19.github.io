@@ -101,7 +101,7 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             git add docs/app/
             git commit -m "Actualizar versión web - Release ${{ github.ref_name }}"
-            git push
+            git push origin HEAD:master
           else
             echo "Sin cambios en docs/app/"
           fi

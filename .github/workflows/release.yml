@@ -37,9 +37,9 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
 
-  build_ios:
-    name: Build iOS app
-    runs-on: macos-latest
+  build_web:
+    name: Build Web version
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
@@ -52,49 +52,44 @@ jobs:
       - name: Instalar dependencias
         run: flutter pub get
 
-      - name: Compilar iOS (sin firma)
+      - name: Compilar versión web
+        run: flutter build web --release
+
+      - name: Copiar contenido web a docs/app
         run: |
-          set -e
-          flutter build ipa --release --no-codesign || true
+          rm -rf docs/app/*
+          cp -r build/web/* docs/app/
 
-          if ls build/ios/ipa/*.ipa 1> /dev/null 2>&1; then
-            echo "IPA encontrada"
-          else
-            echo "No se generó .ipa; creando paquete .app en zip"
-            flutter build ios --release --no-codesign
-            cd build/ios/iphoneos
-            zip -r scarpa-ios-app.zip Runner.app
-          fi
-
-      - name: Guardar build iOS como artefacto
+      - name: Guardar build web como artefacto
         uses: actions/upload-artifact@v4
         with:
-          name: scarpa-ios-build
-          path: |
-            build/ios/ipa/*.ipa
-            build/ios/iphoneos/scarpa-ios-app.zip
+          name: scarpa-web-build
+          path: docs/app/
           if-no-files-found: error
 
   release:
     name: Publicar Release
     needs:
       - build_android
-      - build_ios
+      - build_web
     runs-on: ubuntu-latest
     permissions:
       contents: write # Necesario para crear la release
     steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
       - name: Descargar artefactos Android
         uses: actions/download-artifact@v4
         with:
           name: scarpa-android-apk
           path: dist/android
 
-      - name: Descargar artefactos iOS
+      - name: Descargar build web
         uses: actions/download-artifact@v4
         with:
-          name: scarpa-ios-build
-          path: dist/ios
+          name: scarpa-web-build
+          path: docs/app
 
       - name: Crear release y adjuntar artefactos
         uses: softprops/action-gh-release@v2
@@ -104,10 +99,8 @@ jobs:
           body: |
             Cambios en esta versión:
             - APK Android
-            - Build iOS (IPA sin firma o ZIP de la app)
+            - Versión web actualizada
           draft: false
           prerelease: false
           files: |
             dist/android/**/*.apk
-            dist/ios/**/*.ipa
-            dist/ios/**/*.zip

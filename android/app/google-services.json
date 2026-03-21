@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "798602460389",
+    "project_id": "gambeta-46604",
+    "storage_bucket": "gambeta-46604.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:798602460389:android:eba8fcc3b11aa6bfa3e80c",
+        "android_client_info": {
+          "package_name": "com.josemanuel.gambeta"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXq2ugLXlCY6Ot11QIiZvi_0EK4mEnXV4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

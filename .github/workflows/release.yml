@@ -127,7 +127,7 @@ jobs:
         run: flutter pub get
 
       - name: Compilar versión web
-        run: flutter build web --release
+        run: flutter build web --release --base-href /app/
 
       - name: Copiar contenido web a docs/app
         run: |

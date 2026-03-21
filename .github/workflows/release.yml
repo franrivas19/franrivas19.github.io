@@ -91,6 +91,21 @@ jobs:
           name: scarpa-web-build
           path: docs/app
 
+      - name: Configurar Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Hacer commit y push de cambios web
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git add docs/app/
+            git commit -m "Actualizar versión web - Release ${{ github.ref_name }}"
+            git push
+          else
+            echo "Sin cambios en docs/app/"
+          fi
+
       - name: Crear release y adjuntar artefactos
         uses: softprops/action-gh-release@v2
         with:

@@ -1,13 +1,33 @@
 {
   "project_info": {
-    "project_number": "798602460389",
+    "project_number": "1028080843947",
+    "firebase_url": "https://scarpa-2026-default-rtdb.europe-west1.firebasedatabase.app",
     "project_id": "scarpa-2026",
     "storage_bucket": "scarpa-2026.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:798602460389:android:eba8fcc3b11aa6bfa3e80c",
+        "mobilesdk_app_id": "1:1028080843947:android:52ac4e5d4a4a2eddcacbee",
+        "android_client_info": {
+          "package_name": "com.example.scarpa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfdgR_p624C9eKU1m5PsUBvKscnNW0wLc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1028080843947:android:97b7484cb1bf1640cacbee",
         "android_client_info": {
           "package_name": "com.rivas.scarpa"
         }
@@ -15,7 +35,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBXq2ugLXlCY6Ot11QIiZvi_0EK4mEnXV4"
+          "current_key": "AIzaSyDfdgR_p624C9eKU1m5PsUBvKscnNW0wLc"
         }
       ],
       "services": {

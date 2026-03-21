@@ -297,15 +297,15 @@ document.querySelectorAll('.btn-download').forEach(btn => {
                 window.location.href = 'https://your-app-url/download/scarpa.apk';
             } else if (isIOS) {
                 // Replace with actual iOS app download link
-                console.log('Starting iOS download...');
-                window.location.href = 'https://your-app-url/download/scarpa-ios.ipa';
+                console.log('Opening iOS app page...');
+                window.location.href = "/app"; 
             } else if (isLinux) {
                 // Replace with actual Linux download link
                 console.log('Starting Linux download...');
                 window.location.href = 'https://your-app-url/download/scarpa-linux';
             } else {
                 // Web app link
-                window.location.href = '/app';
+                window.location.href = '../web/index.html';
             }
         }
     });

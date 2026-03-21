@@ -291,6 +291,46 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
                         },
                       ),
                     ),
+                  Deporte.fut7 => Opacity(
+                      opacity: alphaValue,
+                      child: Image.asset(
+                        'assets/fut_7.png',
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
+                            child: Text(
+                              'ADD assets/fut_7.png',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  Deporte.futsal => Opacity(
+                      opacity: alphaValue,
+                      child: Image.asset(
+                        'assets/fut_sala.png',
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
+                            child: Text(
+                              'ADD assets/fut_sala.png',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   _ => const Text(
                       'IMAGE PLACEHOLDER',
                       style: TextStyle(

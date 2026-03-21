@@ -10,14 +10,14 @@ class CustomTextField extends StatefulWidget {
   final String? Function(String?)? validator;
 
   const CustomTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.label,
     this.keyboardType = TextInputType.text,
     this.obscureText = false,
     this.suffixIcon,
     this.validator,
-  }) : super(key: key);
+  });
 
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
@@ -25,6 +25,7 @@ class CustomTextField extends StatefulWidget {
 
 class _CustomTextFieldState extends State<CustomTextField> with SingleTickerProviderStateMixin {
   late AnimationController _focusController;
+  late FocusNode _focusNode;
   bool _isFocused = false;
 
   @override
@@ -34,10 +35,26 @@ class _CustomTextFieldState extends State<CustomTextField> with SingleTickerProv
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
+    _focusNode = FocusNode()..addListener(_handleFocusChange);
+  }
+
+  void _handleFocusChange() {
+    final hasFocus = _focusNode.hasFocus;
+    if (!mounted) {
+      return;
+    }
+    setState(() => _isFocused = hasFocus);
+    if (hasFocus) {
+      _focusController.forward();
+    } else {
+      _focusController.reverse();
+    }
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_handleFocusChange);
+    _focusNode.dispose();
     _focusController.dispose();
     super.dispose();
   }
@@ -61,16 +78,9 @@ class _CustomTextFieldState extends State<CustomTextField> with SingleTickerProv
           ),
           child: TextField(
             controller: widget.controller,
+            focusNode: _focusNode,
             keyboardType: widget.keyboardType,
             obscureText: widget.obscureText,
-            onFocus: (hasFocus) {
-              setState(() => _isFocused = hasFocus);
-              if (hasFocus) {
-                _focusController.forward();
-              } else {
-                _focusController.reverse();
-              }
-            },
             decoration: InputDecoration(
               labelText: widget.label,
               suffixIcon: widget.suffixIcon,

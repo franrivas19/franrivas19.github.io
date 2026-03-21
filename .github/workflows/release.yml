@@ -24,6 +24,39 @@ jobs:
         with:
           channel: stable
 
+      - name: Validar secrets Firebase
+        env:
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          FIREBASE_WEB_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID }}
+          FIREBASE_ANDROID_API_KEY: ${{ secrets.FIREBASE_ANDROID_API_KEY }}
+          FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          FIREBASE_IOS_API_KEY: ${{ secrets.FIREBASE_IOS_API_KEY }}
+          FIREBASE_IOS_APP_ID: ${{ secrets.FIREBASE_IOS_APP_ID }}
+          FIREBASE_MESSAGING_ID: ${{ secrets.FIREBASE_MESSAGING_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+          FIREBASE_IOS_BUNDLE_ID: ${{ secrets.FIREBASE_IOS_BUNDLE_ID }}
+        run: |
+          set -e
+          required=(
+            FIREBASE_WEB_API_KEY FIREBASE_WEB_APP_ID
+            FIREBASE_ANDROID_API_KEY FIREBASE_ANDROID_APP_ID
+            FIREBASE_IOS_API_KEY FIREBASE_IOS_APP_ID
+            FIREBASE_MESSAGING_ID FIREBASE_PROJECT_ID
+            FIREBASE_AUTH_DOMAIN FIREBASE_DATABASE_URL
+            FIREBASE_STORAGE_BUCKET FIREBASE_MEASUREMENT_ID
+            FIREBASE_IOS_BUNDLE_ID
+          )
+          for key in "${required[@]}"; do
+            if [ -z "${!key}" ]; then
+              echo "Falta configurar el secret: $key"
+              exit 1
+            fi
+          done
+
       - name: Generar lib/secret.dart desde Secrets
         run: |
           mkdir -p lib
@@ -85,6 +118,39 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+
+      - name: Validar secrets Firebase
+        env:
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          FIREBASE_WEB_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID }}
+          FIREBASE_ANDROID_API_KEY: ${{ secrets.FIREBASE_ANDROID_API_KEY }}
+          FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          FIREBASE_IOS_API_KEY: ${{ secrets.FIREBASE_IOS_API_KEY }}
+          FIREBASE_IOS_APP_ID: ${{ secrets.FIREBASE_IOS_APP_ID }}
+          FIREBASE_MESSAGING_ID: ${{ secrets.FIREBASE_MESSAGING_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+          FIREBASE_IOS_BUNDLE_ID: ${{ secrets.FIREBASE_IOS_BUNDLE_ID }}
+        run: |
+          set -e
+          required=(
+            FIREBASE_WEB_API_KEY FIREBASE_WEB_APP_ID
+            FIREBASE_ANDROID_API_KEY FIREBASE_ANDROID_APP_ID
+            FIREBASE_IOS_API_KEY FIREBASE_IOS_APP_ID
+            FIREBASE_MESSAGING_ID FIREBASE_PROJECT_ID
+            FIREBASE_AUTH_DOMAIN FIREBASE_DATABASE_URL
+            FIREBASE_STORAGE_BUCKET FIREBASE_MEASUREMENT_ID
+            FIREBASE_IOS_BUNDLE_ID
+          )
+          for key in "${required[@]}"; do
+            if [ -z "${!key}" ]; then
+              echo "Falta configurar el secret: $key"
+              exit 1
+            fi
+          done
 
       - name: Generar lib/secret.dart desde Secrets
         run: |

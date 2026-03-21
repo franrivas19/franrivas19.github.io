@@ -55,7 +55,7 @@ class AppTheme {
           letterSpacing: 0.5,
         ),
         elevation: 6,
-        shadowColor: primaryBlue.withOpacity(0.5),
+        shadowColor: primaryBlue.withOpacity(0.7),
       ),
     ),
     

@@ -105,6 +105,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: () => context.push('/recuperar-contrasena'),
                 child: const Text('Olvide mi contrasena'),
               ),
+              TextButton(
+                onPressed: () => context.push('/registro'),
+                child: const Text('¿Eres nuevo? ¡Apúntate a la peña!'),
+              ),
             ],
           ),
         ),

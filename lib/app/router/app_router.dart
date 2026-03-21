@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/login_screen.dart';
+import '../../features/auth/register_screen.dart';
 import '../../features/auth/recover_password_screen.dart';
 import '../../features/home/player_detail_screen.dart';
 import '../../features/home/plantilla_screen.dart';
@@ -23,6 +24,10 @@ class AppRouter {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/registro',
+        builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
         path: '/recuperar-contrasena',
@@ -88,6 +93,7 @@ class AppRouter {
     redirect: (context, state) {
       final isLoggedIn = FirebaseAuth.instance.currentUser != null;
       final inAuthFlow = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/registro' ||
           state.matchedLocation == '/recuperar-contrasena';
 
       if (!isLoggedIn && !inAuthFlow) {

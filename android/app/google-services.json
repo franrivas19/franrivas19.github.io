@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "798602460389",
-    "project_id": "gambeta-46604",
-    "storage_bucket": "gambeta-46604.firebasestorage.app"
+    "project_number": "1028080843947",
+    "project_id": "scarpa-2026",
+    "storage_bucket": "scarpa-2026.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:798602460389:android:eba8fcc3b11aa6bfa3e80c",
+        "mobilesdk_app_id": "1:1028080843947:android:52ac4e5d4a4a2eddcacbee",
         "android_client_info": {
-          "package_name": "com.josemanuel.gambeta"
+          "package_name": "com.example.scarpa"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBXq2ugLXlCY6Ot11QIiZvi_0EK4mEnXV4"
+          "current_key": "AIzaSyDfdgR_p624C9eKU1m5PsUBvKscnNW0wLc"
         }
       ],
       "services": {

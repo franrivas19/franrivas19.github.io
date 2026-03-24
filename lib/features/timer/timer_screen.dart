@@ -46,14 +46,8 @@ const List<Usuario> _usuariosHardcode = [
   Usuario(id: 16, nombre: 'KK'),
 ];
 
-const Color _colorOscuro = Color(0xFF2B2B2B);
-const Color _colorClaro = Color(0xFF9FE7F5);
-const Color _colorFondoApp = Color(0xFFF8F8F8);
-const Color _colorRojo = Color(0xFFFF3B5C);
-const Color _colorRosa = Color(0xFFFF6B9D);
-const Color _colorTituloGris = Color(0xFF2B2B2B);
-const Color _colorTimerFondo = Color(0xFFFAD5C8);
-const Color _colorTimerTexto = Color(0xFF2F5156);
+const Color _colorEquipoOscuro = Color(0xFF1E1E1E);
+const Color _colorError = Color(0xFFEF4444);
 
 class TimerTurnosScreen extends StatefulWidget {
   const TimerTurnosScreen({super.key});
@@ -63,8 +57,6 @@ class TimerTurnosScreen extends StatefulWidget {
 }
 
 class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
-  static const String _fontFamily = 'Oswald';
-
   Deporte? _deporte;
   FaseTurno _fase = FaseTurno.seleccionarDeporte;
   List<Usuario> _equipoOscuro = [];
@@ -198,189 +190,138 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: _colorFondoApp,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('TURNOS'),
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back),
+        ),
+      ),
       body: SafeArea(
-        child: DefaultTextStyle(
-          style: const TextStyle(fontFamily: _fontFamily, color: _colorTituloGris),
-          child: switch (_fase) {
-            FaseTurno.seleccionarDeporte => _buildSeleccionDeporte(),
-            FaseTurno.seleccionarEquipos => _buildSeleccionEquipos(),
-            FaseTurno.jugando => _buildJugando(),
-          },
+        child: switch (_fase) {
+          FaseTurno.seleccionarDeporte => _buildSeleccionDeporte(),
+          FaseTurno.seleccionarEquipos => _buildSeleccionEquipos(),
+          FaseTurno.jugando => _buildJugando(),
+        }),
+      );
+  }
+
+  Widget _buildSeleccionDeporte() {
+    final theme = Theme.of(context);
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          'Selecciona el formato del partido',
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 16),
+        ...Deporte.values.map(_sportButton),
+      ],
+    );
+  }
+
+  Widget _buildSectionTitle(Deporte deporte) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Turnos ${deporte.deporteNombre}${deporte.numeroNombre}',
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: scheme.secondary.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '${deporte.requeridasPorEquipo}x${deporte.requeridasPorEquipo}',
+                style: TextStyle(
+                  color: scheme.tertiary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSeleccionDeporte() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 80,
-            decoration: BoxDecoration(
-              color: _colorClaro,
-              borderRadius: BorderRadius.circular(50),
-            ),
-            alignment: Alignment.center,
-            child: const Text(
-              'TURNOS',
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-                fontFamily: _fontFamily,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          ...Deporte.values.map(_sportButton),
-        ],
-      ),
-    );
-  }
-
   Widget _sportButton(Deporte deporte) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final colorFondo = switch (deporte) {
-      Deporte.futsal => const Color(0xFFC5BEE6),
-      Deporte.fut7 => const Color(0xFF00FF00),
-      Deporte.fut11 => const Color(0xFF8FB89F),
+      Deporte.futsal => scheme.secondary,
+      Deporte.fut7 => scheme.primary,
+      Deporte.fut11 => scheme.tertiary,
     };
 
-    final alphaValue = switch (deporte) {
-      Deporte.futsal => 0.9,
-      Deporte.fut7 => 0.6,
-      Deporte.fut11 => 0.9,
+    final imageAsset = switch (deporte) {
+      Deporte.fut11 => 'assets/fut_11.png',
+      Deporte.fut7 => 'assets/fut_7.png',
+      Deporte.futsal => 'assets/fut_sala.png',
     };
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(18),
         onTap: () => _seleccionarDeporte(deporte),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                height: 130,
-                color: colorFondo.withValues(alpha: alphaValue),
-                alignment: Alignment.center,
-                child: switch (deporte) {
-                  Deporte.fut11 => Opacity(
-                      opacity: alphaValue,
-                      child: Image.asset(
-                        'assets/fut_11.png',
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Text(
-                              'ADD assets/fut_11.png',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  Deporte.fut7 => Opacity(
-                      opacity: alphaValue,
-                      child: Image.asset(
-                        'assets/fut_7.png',
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Text(
-                              'ADD assets/fut_7.png',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  Deporte.futsal => Opacity(
-                      opacity: alphaValue,
-                      child: Image.asset(
-                        'assets/fut_sala.png',
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Text(
-                              'ADD assets/fut_sala.png',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  _ => const Text(
-                      'IMAGE PLACEHOLDER',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white70,
-                      ),
-                    ),
-                },
-              ),
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: deporte.deporteNombre,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                        fontFamily: _fontFamily,
-                        shadows: [
-                          Shadow(
-                            color: Color.fromRGBO(0, 0, 0, 0.25),
-                            offset: Offset(0, 4),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                    TextSpan(
-                      text: deporte.numeroNombre,
-                      style: const TextStyle(
-                        color: _colorRosa,
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                        fontFamily: _fontFamily,
-                        shadows: [
-                          Shadow(
-                            color: Color.fromRGBO(0, 0, 0, 0.25),
-                            offset: Offset(0, 4),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+        child: Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          child: SizedBox(
+            height: 110,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  imageAsset,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => ColoredBox(
+                    color: colorFondo.withValues(alpha: 0.85),
+                  ),
                 ),
-              ),
-            ],
+                ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.32),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${deporte.deporteNombre}${deporte.numeroNombre}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, color: scheme.surface, size: 28),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -389,6 +330,8 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
 
   Widget _buildSeleccionEquipos() {
     final deporte = _deporte!;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final disponibles = _usuariosDisponibles;
     final equiposCompletos = _equipoOscuro.length == deporte.requeridasPorEquipo &&
         _equipoClaro.length == deporte.requeridasPorEquipo;
@@ -397,239 +340,176 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
       _jugadorActual = disponibles.first;
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          const SizedBox(height: 20),
-          Container(
-            height: 60,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: _colorClaro,
-              borderRadius: BorderRadius.circular(50),
-            ),
-            alignment: Alignment.center,
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(
-                  color: _colorTituloGris,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: _fontFamily,
-                  shadows: [
-                    Shadow(
-                      color: Color.fromRGBO(0, 0, 0, 0.3),
-                      offset: Offset(0, 2),
-                      blurRadius: 4,
-                    ),
-                  ],
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSectionTitle(deporte),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            if (equiposCompletos) ...[
+              Expanded(
+                child: SizedBox(
+                  height: 52,
+                  child: FilledButton.icon(
+                    onPressed: _iniciarJuego,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('INICIAR'),
+                  ),
                 ),
-                children: [
-                  const TextSpan(text: 'TURNOS '),
-                  TextSpan(text: deporte.deporteNombre, style: const TextStyle(color: Colors.white)),
-                  TextSpan(text: deporte.numeroNombre, style: const TextStyle(color: _colorRosa)),
-                ],
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              if (equiposCompletos) ...[
-                Expanded(
-                  child: SizedBox(
-                    height: 100,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        elevation: 0,
-                      ),
-                      onPressed: _iniciarJuego,
-                      child: const Text(
-                        'INICIAR',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                          fontFamily: _fontFamily,
-                        ),
-                      ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: _colorError),
+                    ),
+                    onPressed: _reiniciar,
+                    icon: const Icon(Icons.restart_alt, color: _colorError),
+                    label: const Text(
+                      'REINICIAR',
+                      style: TextStyle(color: _colorError),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: SizedBox(
-                    height: 100,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _colorRojo,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        elevation: 0,
-                      ),
-                      onPressed: _reiniciar,
-                      child: const Text(
-                        'REINICIAR',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          fontFamily: _fontFamily,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ] else ...[
-                Expanded(
-                  child: _cajaSeleccionGigante(
-                    nombre: _jugadorActual?.nombre ?? '---',
-                    colorFondo: Colors.white,
-                    colorTexto: Colors.black,
-                    onTap: () {
-                      final actual = _jugadorActual;
-                      if (actual == null) {
-                        return;
+              ),
+            ] else ...[
+              Expanded(
+                child: _cajaSeleccion(
+                  titulo: 'CLARO',
+                  nombre: _jugadorActual?.nombre ?? '---',
+                  colorFondo: scheme.surface,
+                  colorTexto: scheme.tertiary,
+                  onTap: () {
+                    final actual = _jugadorActual;
+                    if (actual == null) {
+                      return;
+                    }
+                    setState(() {
+                      if (_equipoClaro.length < deporte.requeridasPorEquipo) {
+                        _equipoClaro = [..._equipoClaro, actual];
                       }
-                      setState(() {
-                        if (_equipoClaro.length < deporte.requeridasPorEquipo) {
-                          _equipoClaro = [..._equipoClaro, actual];
-                        }
-                        _jugadorActual = _nextJugadorActual(actual, _usuariosDisponibles);
-                      });
-                    },
-                  ),
+                      _jugadorActual = _nextJugadorActual(actual, _usuariosDisponibles);
+                    });
+                  },
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _cajaSeleccionGigante(
-                    nombre: _jugadorActual?.nombre ?? '---',
-                    colorFondo: _colorOscuro,
-                    colorTexto: Colors.white,
-                    onTap: () {
-                      final actual = _jugadorActual;
-                      if (actual == null) {
-                        return;
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _cajaSeleccion(
+                  titulo: 'OSCURO',
+                  nombre: _jugadorActual?.nombre ?? '---',
+                  colorFondo: _colorEquipoOscuro,
+                  colorTexto: Colors.white,
+                  onTap: () {
+                    final actual = _jugadorActual;
+                    if (actual == null) {
+                      return;
+                    }
+                    setState(() {
+                      if (_equipoOscuro.length < deporte.requeridasPorEquipo) {
+                        _equipoOscuro = [..._equipoOscuro, actual];
                       }
-                      setState(() {
-                        if (_equipoOscuro.length < deporte.requeridasPorEquipo) {
-                          _equipoOscuro = [..._equipoOscuro, actual];
-                        }
-                        _jugadorActual = _nextJugadorActual(actual, _usuariosDisponibles);
-                      });
-                    },
-                  ),
+                      _jugadorActual = _nextJugadorActual(actual, _usuariosDisponibles);
+                    });
+                  },
                 ),
-              ],
+              ),
             ],
-          ),
-          if (disponibles.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            const Text(
-              'JUGADORES',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, fontFamily: _fontFamily),
-            ),
-            const SizedBox(height: 12),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: disponibles
-                    .map(
-                      (usuario) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: InkWell(
-                          onTap: () => setState(() => _jugadorActual = usuario),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              usuario.nombre,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                fontFamily: _fontFamily,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
           ],
-          const SizedBox(height: 24),
-          _contenedorEquipo(
-            titulo: 'OSCURO',
-            colorCabecera: _colorOscuro,
-            colorTextoCabecera: Colors.white,
-            jugadores: _equipoOscuro,
-            capacidad: deporte.requeridasPorEquipo,
-            colorCelda: const Color(0xFF3D3D3D),
-            onQuitar: (usuario) => setState(() => _equipoOscuro = _equipoOscuro.where((u) => u.id != usuario.id).toList()),
+        ),
+        if (disponibles.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text(
+            'Jugadores disponibles',
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
-          const SizedBox(height: 20),
-          _contenedorEquipo(
-            titulo: 'CLARO',
-            colorCabecera: _colorClaro,
-            colorTextoCabecera: Colors.black,
-            jugadores: _equipoClaro,
-            capacidad: deporte.requeridasPorEquipo,
-            colorCelda: const Color(0xFFB2EBF2),
-            onQuitar: (usuario) => setState(() => _equipoClaro = _equipoClaro.where((u) => u.id != usuario.id).toList()),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: disponibles.map((usuario) {
+                final isSelected = _jugadorActual?.id == usuario.id;
+
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    selectedColor: scheme.primary.withValues(alpha: 0.18),
+                    side: BorderSide(color: isSelected ? scheme.primary : Colors.transparent),
+                    label: Text(usuario.nombre),
+                    selected: isSelected,
+                    onSelected: (_) => setState(() => _jugadorActual = usuario),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
-          const SizedBox(height: 20),
         ],
-      ),
+        const SizedBox(height: 16),
+        _contenedorEquipo(
+          titulo: 'OSCURO',
+          colorCabecera: _colorEquipoOscuro,
+          colorTextoCabecera: Colors.white,
+          jugadores: _equipoOscuro,
+          capacidad: deporte.requeridasPorEquipo,
+          onQuitar: (usuario) => setState(() => _equipoOscuro = _equipoOscuro.where((u) => u.id != usuario.id).toList()),
+        ),
+        const SizedBox(height: 12),
+        _contenedorEquipo(
+          titulo: 'CLARO',
+          colorCabecera: scheme.primary.withValues(alpha: 0.15),
+          colorTextoCabecera: scheme.tertiary,
+          jugadores: _equipoClaro,
+          capacidad: deporte.requeridasPorEquipo,
+          onQuitar: (usuario) => setState(() => _equipoClaro = _equipoClaro.where((u) => u.id != usuario.id).toList()),
+        ),
+      ],
     );
   }
 
-  Widget _cajaSeleccionGigante({
+  Widget _cajaSeleccion({
+    required String titulo,
     required String nombre,
     required Color colorFondo,
     required Color colorTexto,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      color: colorFondo,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
-        child: Ink(
-          height: 100,
-          decoration: BoxDecoration(
-            color: colorFondo,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: const [
-              BoxShadow(
-                color: Color.fromRGBO(0, 0, 0, 0.22),
-                blurRadius: 10,
-                offset: Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              nombre,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: colorTexto,
-                fontFamily: _fontFamily,
-                shadows: const [
-                  Shadow(
-                    color: Color.fromRGBO(0, 0, 0, 0.25),
-                    offset: Offset(0, 4),
-                    blurRadius: 4,
+        child: SizedBox(
+          height: 110,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: TextStyle(
+                    color: colorTexto.withValues(alpha: 0.8),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
-                ],
-              ),
+                ),
+                const Spacer(),
+                Text(
+                  nombre,
+                  maxLines: 2,
+                  style: TextStyle(
+                    color: colorTexto,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -643,47 +523,58 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
     required Color colorTextoCabecera,
     required List<Usuario> jugadores,
     required int capacidad,
-    required Color colorCelda,
     required void Function(Usuario) onQuitar,
   }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: colorCelda.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(24),
-      ),
+    final theme = Theme.of(context);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
             decoration: BoxDecoration(
               color: colorCabecera,
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
               ),
             ),
-            alignment: Alignment.center,
-            child: Text(
-              titulo,
-              style: TextStyle(
-                color: colorTextoCabecera,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                letterSpacing: 2,
-                fontFamily: _fontFamily,
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    titulo,
+                    style: TextStyle(
+                      color: colorTextoCabecera,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${jugadores.length}/$capacidad',
+                  style: TextStyle(
+                    color: colorTextoCabecera.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(12),
             child: Wrap(
               spacing: 8,
-              runSpacing: 6,
+              runSpacing: 8,
               children: List.generate(capacidad, (index) {
                 final jugador = jugadores.length > index ? jugadores[index] : null;
-                return _celdaEstiloFigma(
+
+                return _celdaJugador(
                   jugador: jugador,
                   index: index + 1,
                   colorFondo: colorCabecera,
@@ -692,6 +583,7 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
                       onQuitar(jugador);
                     }
                   },
+                  placeholderColor: theme.colorScheme.surfaceContainerHighest,
                 );
               }),
             ),
@@ -701,10 +593,11 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
     );
   }
 
-  Widget _celdaEstiloFigma({
+  Widget _celdaJugador({
     required Usuario? jugador,
     required int index,
     required Color colorFondo,
+    required Color placeholderColor,
     required VoidCallback onTap,
   }) {
     final tieneJugador = jugador != null;
@@ -713,10 +606,10 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
       borderRadius: BorderRadius.circular(12),
       onTap: tieneJugador ? onTap : null,
       child: Container(
-        height: 65,
-        width: 85,
+        height: 62,
+        width: 86,
         decoration: BoxDecoration(
-          color: tieneJugador ? colorFondo : Colors.white.withValues(alpha: 0.5),
+          color: tieneJugador ? colorFondo : placeholderColor,
           borderRadius: BorderRadius.circular(12),
         ),
         alignment: Alignment.center,
@@ -725,174 +618,154 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
                 jugador.nombre,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: colorFondo == _colorOscuro ? Colors.white : Colors.black,
+                  color: colorFondo.computeLuminance() < 0.4 ? Colors.white : Colors.black,
                   fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: _fontFamily,
+                  fontWeight: FontWeight.w800,
                 ),
               )
             : Text(
                 '$index',
                 style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: colorFondo.withValues(alpha: 0.2),
-                  fontFamily: _fontFamily,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.28),
                 ),
               ),
-      ),
-    );
+            ),
+          );
   }
 
   Widget _buildJugando() {
     final deporte = _deporte!;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final jugadorOscuro = _equipoOscuro.length > _indiceTurno ? _equipoOscuro[_indiceTurno] : null;
     final jugadorClaro = _equipoClaro.length > _indiceTurno ? _equipoClaro[_indiceTurno] : null;
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            height: 60,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: _colorClaro,
-              borderRadius: BorderRadius.circular(50),
-            ),
-            alignment: Alignment.center,
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(
-                  color: _colorTituloGris,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: _fontFamily,
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSectionTitle(deporte),
+        const SizedBox(height: 12),
+        Card(
+          color: scheme.tertiary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Column(
+              children: [
+                Text(
+                  'Tiempo restante',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
                 ),
-                children: [
-                  const TextSpan(text: 'TURNOS '),
-                  TextSpan(text: deporte.deporteNombre),
-                  TextSpan(
-                    text: deporte.numeroNombre,
-                    style: const TextStyle(color: _colorRosa, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            width: double.infinity,
-            height: 220,
-            decoration: BoxDecoration(
-              color: _colorTimerFondo,
-              borderRadius: BorderRadius.circular(40),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              _formatearTiempo(_segundos),
-              style: const TextStyle(
-                fontSize: 88,
-                fontWeight: FontWeight.bold,
-                color: _colorTimerTexto,
-                letterSpacing: 2,
-                fontFamily: _fontFamily,
-              ),
-            ),
-          ),
-          const SizedBox(height: 40),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 110,
-                  decoration: BoxDecoration(
+                const SizedBox(height: 6),
+                Text(
+                  _formatearTiempo(_segundos),
+                  style: const TextStyle(
+                    fontSize: 64,
+                    fontWeight: FontWeight.w900,
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    jugadorClaro?.nombre ?? '-',
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: _colorTituloGris,
-                      fontFamily: _fontFamily,
-                    ),
+                    letterSpacing: 1.5,
                   ),
                 ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _jugadorTurnoCard(
+                etiqueta: 'CLARO',
+                nombre: jugadorClaro?.nombre ?? '-',
+                colorFondo: scheme.surface,
+                colorTexto: scheme.tertiary,
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Container(
-                  height: 110,
-                  decoration: BoxDecoration(
-                    color: _colorOscuro,
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    jugadorOscuro?.nombre ?? '-',
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontFamily: _fontFamily,
-                    ),
-                  ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _jugadorTurnoCard(
+                etiqueta: 'OSCURO',
+                nombre: jugadorOscuro?.nombre ?? '-',
+                colorFondo: _colorEquipoOscuro,
+                colorTexto: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (_segundos == 0) ...[
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: scheme.primary),
+              onPressed: _siguienteTurno,
+              icon: const Icon(Icons.skip_next),
+              label: const Text('SIGUIENTE TURNO'),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: _colorError),
+            ),
+            onPressed: _reiniciar,
+            icon: const Icon(Icons.restart_alt, color: _colorError),
+            label: const Text(
+              'REINICIAR',
+              style: TextStyle(color: _colorError),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _jugadorTurnoCard({
+    required String etiqueta,
+    required String nombre,
+    required Color colorFondo,
+    required Color colorTexto,
+  }) {
+    return Card(
+      margin: EdgeInsets.zero,
+      color: colorFondo,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: SizedBox(
+        height: 108,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                etiqueta,
+                style: TextStyle(
+                  color: colorTexto.withValues(alpha: 0.8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                nombre,
+                maxLines: 2,
+                style: TextStyle(
+                  color: colorTexto,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
                 ),
               ),
             ],
           ),
-          const Spacer(),
-          if (_segundos == 0)
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _colorRojo,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  elevation: 0,
-                ),
-                onPressed: _siguienteTurno,
-                child: const Text(
-                  'SIGUIENTE TURNO',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: _fontFamily,
-                  ),
-                ),
-              ),
-            ),
-          if (_segundos == 0) const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: _colorRojo),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              ),
-              onPressed: _reiniciar,
-              child: const Text(
-                'REINICIAR',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: _colorRojo,
-                  fontFamily: _fontFamily,
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

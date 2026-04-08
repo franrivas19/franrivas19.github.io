@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/services/firestore_service.dart';
 
 class Usuario {
   const Usuario({required this.id, required this.nombre});
@@ -57,6 +60,7 @@ class TimerTurnosScreen extends StatefulWidget {
 }
 
 class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
+  final _service = FirestoreService();
   Deporte? _deporte;
   FaseTurno _fase = FaseTurno.seleccionarDeporte;
   List<Usuario> _equipoOscuro = [];
@@ -201,13 +205,99 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
           icon: const Icon(Icons.arrow_back),
         ),
       ),
-      body: SafeArea(
-        child: switch (_fase) {
-          FaseTurno.seleccionarDeporte => _buildSeleccionDeporte(),
-          FaseTurno.seleccionarEquipos => _buildSeleccionEquipos(),
-          FaseTurno.jugando => _buildJugando(),
-        }),
+      body: StreamBuilder(
+        stream: _service.inGameMatch(),
+        builder: (context, snapshot) {
+          final inGame = snapshot.data;
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (inGame == null) {
+            return _buildBallonParado();
+          }
+          return SafeArea(
+            child: switch (_fase) {
+              FaseTurno.seleccionarDeporte => _buildSeleccionDeporte(),
+              FaseTurno.seleccionarEquipos => _buildSeleccionEquipos(),
+              FaseTurno.jugando => _buildJugando(),
+            },
+          );
+        },
+      ),
       );
+  }
+
+  Widget _buildBallonParado() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+          Container(
+            width: 130,
+            height: 130,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const RadialGradient(
+                colors: [Color(0x66C2A679), Color(0x00111111)],
+                radius: 0.95,
+              ),
+              border: Border.all(color: const Color(0x88C2A679)),
+            ),
+            alignment: Alignment.center,
+            child: const Text(
+              '⚽',
+              style: TextStyle(fontSize: 54),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'EL BALON ESTA PARADO',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 700),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: const Color(0xFF1A1A1A),
+            ),
+            child: CustomPaint(
+              painter: _TacticalBoardPainter(),
+              child: const Padding(
+                padding: EdgeInsets.all(18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'No hay partidos en juego ahora mismo.',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Si eres administrador, crea o inicia un partido. Si eres jugador, toca descansar hasta el siguiente pitido.',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: () => context.push('/crear-partido'),
+            icon: const Icon(Icons.add_circle_outline),
+            label: const Text('CREAR PARTIDO'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildSeleccionDeporte() {
@@ -775,4 +865,28 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
     final segs = segundos % 60;
     return '${minutos.toString().padLeft(2, '0')}:${segs.toString().padLeft(2, '0')}';
   }
+}
+
+class _TacticalBoardPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(14)),
+      p,
+    );
+    canvas.drawLine(
+      Offset(size.width / 2, 0),
+      Offset(size.width / 2, size.height),
+      p,
+    );
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 22, p);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

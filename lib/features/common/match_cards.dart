@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/models/match_model.dart';
 import '../../core/utils/app_colors.dart';
+import '../../core/utils/date_utils.dart';
 
 class ProximoPartidoCard extends StatefulWidget {
   const ProximoPartidoCard({
@@ -37,26 +38,11 @@ class _ProximoPartidoCardState extends State<ProximoPartidoCard> {
   }
 
   void _tick() {
-    final partsDate = widget.match.fecha.split('/');
-    final partsTime = widget.match.hora.split(':');
-    if (partsDate.length != 2 || partsTime.length != 2) {
+    final target = parseMatchDateTime(widget.match.fecha, widget.match.hora);
+    if (target == null) {
       return;
     }
-
     final now = DateTime.now();
-    var year = now.year;
-    final month = int.tryParse(partsDate[1]) ?? now.month;
-    if (now.month == 12 && month == 1) {
-      year += 1;
-    }
-
-    final target = DateTime(
-      year,
-      month,
-      int.tryParse(partsDate[0]) ?? now.day,
-      int.tryParse(partsTime[0]) ?? 0,
-      int.tryParse(partsTime[1]) ?? 0,
-    );
 
     setState(() {
       _remaining = target.difference(now);

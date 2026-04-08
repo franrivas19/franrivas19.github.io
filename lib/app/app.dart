@@ -11,7 +11,7 @@ class ScarpaApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'Scarpa',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: AppTheme.dark,
       routerConfig: AppRouter.router,
     );
   }

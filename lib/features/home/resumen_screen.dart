@@ -35,7 +35,7 @@ class _ResumenScreenState extends State<ResumenScreen> {
               builder: (context, lastSnap) {
                 final last = lastSnap.data;
                 return Scaffold(
-                  endDrawer: _buildDrawer(context),
+                  endDrawer: _buildDrawer(context, user),
                   body: Builder(
                     builder: (ctx) => ListView(
                       padding: const EdgeInsets.all(16),
@@ -73,7 +73,7 @@ class _ResumenScreenState extends State<ResumenScreen> {
                             onTap: () => context.push('/editar-partido/${next.id}'),
                           ),
                           const SizedBox(height: 10),
-                          if (_canFillActa(next))
+                          if (_canFillActa(next, user))
                             FilledButton.icon(
                               onPressed: () => context.push('/acta'),
                               icon: const Icon(Icons.edit),
@@ -96,9 +96,21 @@ class _ResumenScreenState extends State<ResumenScreen> {
                         ],
                         Row(
                           children: [
-                            Expanded(child: _StatCard(label: 'Goles', value: '${user?.goles ?? 0}')),
+                            Expanded(
+                              child: _StatCard(
+                                label: 'Goles',
+                                value: '${user?.goles ?? 0}',
+                                onTap: () => context.push('/detalle-estadistica/goles'),
+                              ),
+                            ),
                             const SizedBox(width: 12),
-                            Expanded(child: _StatCard(label: 'Asistencias', value: '${user?.asistencias ?? 0}')),
+                            Expanded(
+                              child: _StatCard(
+                                label: 'Asistencias',
+                                value: '${user?.asistencias ?? 0}',
+                                onTap: () => context.push('/detalle-estadistica/asistencias'),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -148,12 +160,12 @@ class _ResumenScreenState extends State<ResumenScreen> {
     );
   }
 
-  bool _canFillActa(MatchModel match) {
-    final user = FirebaseAuth.instance.currentUser;
+  bool _canFillActa(MatchModel match, AppUser? user) {
     if (user == null) {
       return false;
     }
-    return _service.isMainAdmin || match.adminPartido == user.uid;
+    final isManager = user.rol == 'admin' || match.adminPartido == user.id;
+    return isManager && match.estado == 'En Juego';
   }
 
   bool _canRate(MatchModel match) {
@@ -168,7 +180,7 @@ class _ResumenScreenState extends State<ResumenScreen> {
     return played && !voted && open;
   }
 
-  Widget _buildDrawer(BuildContext context) {
+  Widget _buildDrawer(BuildContext context, AppUser? user) {
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -185,12 +197,17 @@ class _ResumenScreenState extends State<ResumenScreen> {
               title: const Text('Editar perfil'),
               onTap: () => context.push('/editar-perfil'),
             ),
-            if (_service.isMainAdmin)
+            if (user?.rol == 'admin')
               ListTile(
                 leading: const Icon(Icons.add_circle),
                 title: const Text('Crear partido'),
                 onTap: () => context.push('/crear-partido'),
               ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month),
+              title: const Text('Calendario'),
+              onTap: () => context.push('/calendario'),
+            ),
             ListTile(
               leading: const Icon(Icons.groups),
               title: const Text('La plantilla'),
@@ -205,6 +222,11 @@ class _ResumenScreenState extends State<ResumenScreen> {
               leading: const Icon(Icons.emoji_events),
               title: const Text('Tabla de goleadores'),
               onTap: () => context.push('/goleadores'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.auto_awesome),
+              title: const Text('Mis valoraciones'),
+              onTap: () => context.push('/mis-valoraciones'),
             ),
             const Spacer(),
             ListTile(
@@ -225,22 +247,31 @@ class _ResumenScreenState extends State<ResumenScreen> {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.label, required this.value});
+  const _StatCard({
+    required this.label,
+    required this.value,
+    this.onTap,
+  });
 
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-        child: Column(
-          children: [
-            Text(value, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
-            Text(label, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w700)),
-          ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+          child: Column(
+            children: [
+              Text(value, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
+              Text(label, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w700)),
+            ],
+          ),
         ),
       ),
     );

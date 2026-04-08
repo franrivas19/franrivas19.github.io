@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
+import '../../features/home/calendario_screen.dart';
 import '../../features/auth/recover_password_screen.dart';
 import '../../features/home/player_detail_screen.dart';
 import '../../features/home/plantilla_screen.dart';
@@ -14,7 +15,9 @@ import '../../features/matches/edit_match_screen.dart';
 import '../../features/matches/ver_acta_screen.dart';
 import '../../features/matches/votar_partido_screen.dart';
 import '../../features/profile/edit_profile_screen.dart';
+import '../../features/stats/detalle_estadistica_screen.dart';
 import '../../features/stats/goleadores_screen.dart';
+import '../../features/stats/mis_valoraciones_screen.dart';
 import '../../features/timer/timer_screen.dart';
 
 class AppRouter {
@@ -56,6 +59,21 @@ class AppRouter {
       GoRoute(
         path: '/goleadores',
         builder: (context, state) => const GoleadoresScreen(),
+      ),
+      GoRoute(
+        path: '/calendario',
+        builder: (context, state) => const CalendarioScreen(),
+      ),
+      GoRoute(
+        path: '/detalle-estadistica/:tipo',
+        builder: (context, state) {
+          final tipo = state.pathParameters['tipo'] ?? 'goles';
+          return DetalleEstadisticaScreen(tipo: tipo);
+        },
+      ),
+      GoRoute(
+        path: '/mis-valoraciones',
+        builder: (context, state) => const MisValoracionesScreen(),
       ),
       GoRoute(
         path: '/crear-partido',

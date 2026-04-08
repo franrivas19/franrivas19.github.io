@@ -12,6 +12,7 @@ class AppUser {
     required this.fotoUrl,
     required this.totalEstrellas,
     required this.votosRecibidos,
+    required this.rol,
   });
 
   final String id;
@@ -26,6 +27,7 @@ class AppUser {
   final String fotoUrl;
   final double totalEstrellas;
   final int votosRecibidos;
+  final String rol;
 
   factory AppUser.fromMap(String id, Map<String, dynamic> data) {
     return AppUser(
@@ -41,6 +43,7 @@ class AppUser {
       fotoUrl: (data['fotoUrl'] as String?) ?? '',
       totalEstrellas: (data['totalEstrellas'] as num?)?.toDouble() ?? 0,
       votosRecibidos: (data['votosRecibidos'] as num?)?.toInt() ?? 0,
+      rol: (data['rol'] as String?) ?? 'jugador',
     );
   }
 
@@ -57,6 +60,7 @@ class AppUser {
       'fotoUrl': fotoUrl,
       'totalEstrellas': totalEstrellas,
       'votosRecibidos': votosRecibidos,
+      'rol': rol,
     };
   }
 }

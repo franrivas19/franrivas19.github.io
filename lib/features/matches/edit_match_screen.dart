@@ -19,70 +19,37 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
   final _service = FirestoreService();
   bool _saving = false;
 
+  Map<String, int> assignments = {};
+  String adminId = '';
+
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<MatchModel?>(
-      stream: _service.matchById(widget.matchId),
-      builder: (context, matchSnap) {
-        final match = matchSnap.data;
-        if (match == null) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-        return StreamBuilder<List<AppUser>>(
-          stream: _service.allUsers(),
-          builder: (context, usersSnap) {
-            final users = usersSnap.data ?? [];
-            final started = isMatchStarted(match.fecha, match.hora);
-            final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-            final canManage = _service.isMainAdmin || uid == match.adminPartido;
+    return StreamBuilder<AppUser?>(
+      stream: _service.currentUserProfile(),
+      builder: (context, userSnap) {
+        final user = userSnap.data;
+        return StreamBuilder<MatchModel?>(
+          stream: _service.matchById(widget.matchId),
+          builder: (context, matchSnap) {
+            final match = matchSnap.data;
+            if (match == null) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+            return StreamBuilder<List<AppUser>>(
+              stream: _service.allUsers(),
+              builder: (context, usersSnap) {
+                final users = usersSnap.data ?? [];
+                final started = isMatchStarted(match.fecha, match.hora);
+                final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+                final canManage = (user?.rol == 'admin') || uid == match.adminPartido;
 
-            final assignments = <String, int>{
-              for (final u in users)
-                u.id: match.convocatoria1.contains(u.id)
-                    ? 1
-                    : (match.convocatoria2.contains(u.id) ? 2 : 0),
-            };
-            String adminId = match.adminPartido;
-
-            return StatefulBuilder(
-              builder: (context, setLocal) {
-                int c1 = assignments.values.where((v) => v == 1).length;
-                int c2 = assignments.values.where((v) => v == 2).length;
-                int c0 = assignments.values.where((v) => v == 0).length;
-
-                Future<void> save() async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  final navigator = Navigator.of(context);
-                  setState(() => _saving = true);
-                  try {
-                    await _service.saveLineup(
-                      matchId: match.id,
-                      convocatoria1: assignments.entries
-                          .where((e) => e.value == 1)
-                          .map((e) => e.key)
-                          .toList(),
-                      convocatoria2: assignments.entries
-                          .where((e) => e.value == 2)
-                          .map((e) => e.key)
-                          .toList(),
-                      adminPartido: adminId,
-                    );
-                    if (!mounted) {
-                      return;
-                    }
-                    messenger.showSnackBar(const SnackBar(content: Text('Convocatoria guardada')));
-                    navigator.pop();
-                  } catch (e) {
-                    if (!mounted) {
-                      return;
-                    }
-                    messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
-                  } finally {
-                    if (mounted) {
-                      setState(() => _saving = false);
-                    }
-                  }
-                }
+                assignments = <String, int>{
+                  for (final u in users)
+                    u.id: match.convocatoria1.contains(u.id)
+                        ? 1
+                        : (match.convocatoria2.contains(u.id) ? 2 : 0),
+                };
+                adminId = match.adminPartido;
 
                 return Scaffold(
                   appBar: AppBar(title: const Text('CONVOCATORIA')),
@@ -91,7 +58,7 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                       : Padding(
                           padding: const EdgeInsets.all(16),
                           child: FilledButton(
-                            onPressed: _saving ? null : save,
+                            onPressed: _saving ? null : () => save(context, match, users),
                             child: _saving ? const CircularProgressIndicator() : const Text('CONFIRMAR ALINEACIONES'),
                           ),
                         ),
@@ -108,19 +75,19 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _counter(match.equipo1.toUpperCase(), c1, const Color(0xFFD5E5B5)),
-                          _counter('BANQUILLO', c0, Colors.grey.shade300),
-                          _counter(match.equipo2.toUpperCase(), c2, const Color(0xFF312E2E), textLight: true),
+                          _counter(match.equipo1.toUpperCase(), assignments.values.where((v) => v == 1).length, const Color(0xFFD5E5B5)),
+                          _counter('BANQUILLO', assignments.values.where((v) => v == 0).length, Colors.grey.shade300),
+                          _counter(match.equipo2.toUpperCase(), assignments.values.where((v) => v == 2).length, const Color(0xFF312E2E), textLight: true),
                         ],
                       ),
                       const SizedBox(height: 14),
-                      if (_service.isMainAdmin && !started)
+                      if (user?.rol == 'admin' && !started)
                         DropdownButtonFormField<String>(
                           value: adminId.isEmpty ? null : adminId,
                           items: users
                               .map((u) => DropdownMenuItem(value: u.id, child: Text(u.nombre)))
                               .toList(),
-                          onChanged: (v) => setLocal(() => adminId = v ?? ''),
+                          onChanged: (v) => setState(() => adminId = v ?? ''),
                           decoration: const InputDecoration(labelText: 'Designar admin del partido'),
                         ),
                       const SizedBox(height: 10),
@@ -148,7 +115,7 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Solo puedes mover tu ficha.')));
                                 return;
                               }
-                              setLocal(() {
+                              setState(() {
                                 assignments[u.id] = (status + 1) % 3;
                               });
                             },
@@ -167,6 +134,40 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
         );
       },
     );
+  }
+
+  Future<void> save(BuildContext context, MatchModel match, List<AppUser> users) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    setState(() => _saving = true);
+    try {
+      await _service.saveLineup(
+        matchId: match.id,
+        convocatoria1: assignments.entries
+            .where((e) => e.value == 1)
+            .map((e) => e.key)
+            .toList(),
+        convocatoria2: assignments.entries
+            .where((e) => e.value == 2)
+            .map((e) => e.key)
+            .toList(),
+        adminPartido: adminId,
+      );
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(const SnackBar(content: Text('Convocatoria guardada')));
+      navigator.pop();
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
   }
 
   Widget _counter(String title, int count, Color color, {bool textLight = false}) {

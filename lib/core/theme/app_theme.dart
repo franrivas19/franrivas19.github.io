@@ -1,130 +1,136 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Color Palette: Grey, Blue, Gold, Black
-  static const Color darkGrey = Color(0xFF1E1E1E);
-  static const Color mediumGrey = Color(0xFF2D2D2D);
-  static const Color lightGrey = Color(0xFFF5F5F5);
-  static const Color accentGrey = Color(0xFF757575);
-  
-  static const Color primaryBlue = Color(0xFF2563EB);
-  static const Color lightBlue = Color(0xFF3B82F6);
-  static const Color darkBlue = Color(0xFF1E40AF);
-  
-  static const Color goldAccent = Color(0xFFD4A373);
+  static const Color vipBlack = Color(0xFF111111);
+  static const Color vipSurface = Color(0xFF1A1A1A);
+  static const Color vipSurfaceAlt = Color(0xFF222222);
+  static const Color vipGold = Color(0xFFC2A679);
+  static const Color vipGoldStrong = Color(0xFFD4B483);
+  static const Color vipText = Color(0xFFF3F3F3);
+  static const Color vipMuted = Color(0xFF9E9E9E);
+  static const Color darkGrey = vipSurfaceAlt;
+  static const Color mediumGrey = vipSurface;
+  static const Color lightGrey = Color(0xFF2C2C2C);
+  static const Color accentGrey = vipMuted;
+  static const Color primaryBlue = Color(0xFF3A4F6B);
+  static const Color lightBlue = Color(0xFF4C6484);
+  static const Color darkBlue = Color(0xFF1D2B3B);
+  static const Color goldAccent = vipGold;
   static const Color darkGold = Color(0xFFA68860);
-  
-  static const Color black = Color(0xFF000000);
-  
-  static final ThemeData light = ThemeData(
+
+  static final ThemeData dark = ThemeData(
     useMaterial3: true,
-    brightness: Brightness.light,
-    scaffoldBackgroundColor: lightGrey,
-    
-    colorScheme: const ColorScheme.light(
-      primary: primaryBlue,
-      secondary: goldAccent,
-      tertiary: darkGrey,
-      surface: Colors.white,
-      background: lightGrey,
-      error: Color(0xFFEF4444),
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: vipBlack,
+    canvasColor: vipBlack,
+    colorScheme: const ColorScheme.dark(
+      primary: vipGold,
+      secondary: vipGoldStrong,
+      tertiary: vipSurfaceAlt,
+      surface: vipSurface,
+      error: Color(0xFFE57373),
+      onPrimary: Color(0xFF111111),
+      onSecondary: Color(0xFF111111),
+      onSurface: vipText,
     ),
-    
+    cardTheme: CardThemeData(
+      color: vipSurface,
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+      ),
+    ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: darkGrey,
-      foregroundColor: lightGrey,
+      backgroundColor: vipBlack,
+      foregroundColor: vipText,
       elevation: 0,
       centerTitle: true,
       titleTextStyle: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w700,
-        color: lightGrey,
+        color: vipText,
         letterSpacing: 1.2,
       ),
     ),
-    
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: primaryBlue,
-        foregroundColor: Colors.white,
+        backgroundColor: vipGold,
+        foregroundColor: vipBlack,
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 32),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         textStyle: const TextStyle(
           fontSize: 16,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
         ),
-        elevation: 6,
-        shadowColor: primaryBlue.withOpacity(0.7),
+        elevation: 0,
       ),
     ),
-    
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: primaryBlue,
+        foregroundColor: vipGold,
         textStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
       ),
     ),
-    
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: vipSurface,
       contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF2D2D2D), width: 1),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF2D2D2D), width: 1),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: primaryBlue, width: 2.5),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: vipGold, width: 1.8),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: Colors.red, width: 1),
       ),
       labelStyle: const TextStyle(
-        color: accentGrey,
+        color: vipMuted,
         fontSize: 14,
         fontWeight: FontWeight.w500,
       ),
-      prefixIconColor: accentGrey,
-      suffixIconColor: accentGrey,
+      prefixIconColor: vipMuted,
+      suffixIconColor: vipMuted,
     ),
-    
     textTheme: const TextTheme(
       displayLarge: TextStyle(
         fontSize: 32,
         fontWeight: FontWeight.w900,
-        color: black,
+        color: vipText,
         letterSpacing: 2,
       ),
       displayMedium: TextStyle(
         fontSize: 28,
         fontWeight: FontWeight.w800,
-        color: darkGrey,
+        color: vipText,
         letterSpacing: 1,
       ),
       titleLarge: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w700,
-        color: darkGrey,
+        color: vipText,
       ),
       bodyLarge: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w500,
-        color: darkGrey,
+        color: vipText,
       ),
       bodyMedium: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w400,
-        color: accentGrey,
+        color: vipMuted,
       ),
     ),
   );

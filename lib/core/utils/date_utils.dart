@@ -1,30 +1,65 @@
-bool isMatchStarted(String fecha, String hora) {
+DateTime? parseMatchDateTime(String fecha, String hora) {
   try {
     final now = DateTime.now();
-    final ddmm = fecha.split('/');
-    final hhmm = hora.split(':');
-    if (ddmm.length != 2 || hhmm.length != 2) {
-      return false;
+    final normalizedDate = fecha.trim().replaceAll('-', '/');
+    final dateParts = normalizedDate
+        .split('/')
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+
+    if (dateParts.length < 2 || dateParts.length > 3) {
+      return null;
     }
 
-    var year = now.year;
-    final month = int.parse(ddmm[1]);
-    if (now.month == 12 && month == 1) {
-      year += 1;
+    int day;
+    int month;
+    int year;
+
+    if (dateParts.first.length == 4) {
+      year = int.parse(dateParts[0]);
+      month = int.parse(dateParts[1]);
+      day = int.parse(dateParts[2]);
+    } else {
+      day = int.parse(dateParts[0]);
+      month = int.parse(dateParts[1]);
+      if (dateParts.length == 3) {
+        year = int.parse(dateParts[2]);
+      } else {
+        year = now.year;
+      }
     }
 
-    final date = DateTime(
-      year,
-      month,
-      int.parse(ddmm[0]),
-      int.parse(hhmm[0]),
-      int.parse(hhmm[1]),
-    );
+    final normalizedTime = hora.trim();
+    final timeParts = normalizedTime.split(':');
+    final hour = timeParts.isNotEmpty && timeParts.first.isNotEmpty
+        ? int.parse(timeParts[0])
+        : 0;
+    final minute = timeParts.length > 1 && timeParts[1].isNotEmpty
+        ? int.parse(timeParts[1])
+        : 0;
 
-    return now.isAfter(date) || now.isAtSameMomentAs(date);
+    return DateTime(year, month, day, hour, minute);
   } catch (_) {
+    return null;
+  }
+}
+
+bool isMatchStarted(String fecha, String hora) {
+  final dt = parseMatchDateTime(fecha, hora);
+  if (dt == null) {
     return false;
   }
+  final now = DateTime.now();
+  return now.isAfter(dt) || now.isAtSameMomentAs(dt);
+}
+
+Duration? timeUntilMatch(String fecha, String hora) {
+  final dt = parseMatchDateTime(fecha, hora);
+  if (dt == null) {
+    return null;
+  }
+  return dt.difference(DateTime.now());
 }
 
 int calculateAge(String ddmmyyyy) {

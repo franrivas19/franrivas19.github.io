@@ -218,68 +218,60 @@ class _GoleadoresScreenState extends State<GoleadoresScreen> {
                             ),
                           ],
                         ),
-                        child: MouseRegion(
-                          onEnter: (_) {
-                            setState(() {});
-                          },
-                          onExit: (_) {
-                            setState(() {});
-                          },
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            leading: Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: isTopThree
-                                    ? const LinearGradient(
-                                        colors: [AppTheme.goldAccent, AppTheme.darkGold],
-                                      )
-                                    : LinearGradient(
-                                        colors: [AppTheme.lightGrey, AppTheme.accentGrey],
-                                      ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: (isTopThree ? AppTheme.goldAccent : AppTheme.accentGrey).withOpacity(0.4),
-                                    blurRadius: 8,
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '${i + 1}',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900,
-                                    color: isTopThree ? Colors.white : AppTheme.darkGrey,
-                                  ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          leading: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: isTopThree
+                                  ? const LinearGradient(
+                                      colors: [AppTheme.goldAccent, AppTheme.darkGold],
+                                    )
+                                  : LinearGradient(
+                                      colors: [AppTheme.lightGrey, AppTheme.accentGrey],
+                                    ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (isTopThree ? AppTheme.goldAccent : AppTheme.accentGrey).withOpacity(0.4),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${i + 1}',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: isTopThree ? Colors.white : AppTheme.darkGrey,
                                 ),
                               ),
                             ),
-                            title: Text(
-                              u.nombre,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: isTopThree ? Colors.white : AppTheme.darkGrey,
-                              ),
+                          ),
+                          title: Text(
+                            u.nombre,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: isTopThree ? Colors.white : AppTheme.darkGrey,
                             ),
-                            subtitle: Text(
-                              'PJ ${u.pj}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isTopThree ? Colors.white70 : AppTheme.accentGrey,
-                                fontWeight: FontWeight.w500,
-                              ),
+                          ),
+                          subtitle: Text(
+                            'PJ ${u.pj}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isTopThree ? Colors.white70 : AppTheme.accentGrey,
+                              fontWeight: FontWeight.w500,
                             ),
-                            trailing: Text(
-                              '${u.goles}',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                                color: isTopThree ? AppTheme.goldAccent : AppTheme.primaryBlue,
-                              ),
+                          ),
+                          trailing: Text(
+                            '${u.goles}',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              color: isTopThree ? AppTheme.goldAccent : AppTheme.primaryBlue,
                             ),
                           ),
                         ),

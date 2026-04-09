@@ -1,46 +1,73 @@
 {
   "project_info": {
-    "project_number": "1028080843947",
-    "firebase_url": "https://scarpa-2026-default-rtdb.europe-west1.firebasedatabase.app",
-    "project_id": "scarpa-2026",
-    "storage_bucket": "scarpa-2026.firebasestorage.app"
+    "project_number": "798602460389",
+    "project_id": "gambeta-46604",
+    "storage_bucket": "gambeta-46604.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1028080843947:android:52ac4e5d4a4a2eddcacbee",
+        "mobilesdk_app_id": "1:798602460389:android:eba8fcc3b11aa6bfa3e80c",
         "android_client_info": {
-          "package_name": "com.example.scarpa"
+          "package_name": "com.josemanuel.gambeta"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "798602460389-bda6n152c21poh1td51gl57ndb8bagd1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.josemanuel.gambeta",
+            "certificate_hash": "fee13616a0b9418e1de24b729a38d6d18ae39951"
+          }
+        },
+        {
+          "client_id": "798602460389-jv4tr25bd4a4uc9sc49d25jlfufa2h79.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDfdgR_p624C9eKU1m5PsUBvKscnNW0wLc"
+          "current_key": "AIzaSyBXq2ugLXlCY6Ot11QIiZvi_0EK4mEnXV4"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "798602460389-jv4tr25bd4a4uc9sc49d25jlfufa2h79.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1028080843947:android:97b7484cb1bf1640cacbee",
+        "mobilesdk_app_id": "1:798602460389:android:2c67686110e4ec07a3e80c",
         "android_client_info": {
           "package_name": "com.rivas.scarpa"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "798602460389-jv4tr25bd4a4uc9sc49d25jlfufa2h79.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDfdgR_p624C9eKU1m5PsUBvKscnNW0wLc"
+          "current_key": "AIzaSyBXq2ugLXlCY6Ot11QIiZvi_0EK4mEnXV4"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "798602460389-jv4tr25bd4a4uc9sc49d25jlfufa2h79.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

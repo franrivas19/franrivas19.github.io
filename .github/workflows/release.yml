@@ -239,6 +239,8 @@ jobs:
       - name: Hacer commit y push de cambios web
         run: |
           if [ -n "$(git status --porcelain)" ]; then
+            git fetch
+            git config pull.rebase false
             git pull origin master
             git add docs/app/
             git commit -m "Actualizar versión web - Release ${{ github.ref_name }}"

@@ -6,107 +6,6 @@ on:
       - 'v*' # Activa el workflow cuando se hace push de un tag v1.0, v2.1.2, etc.
 
 jobs:
-  build_android:
-    name: Build Android APK
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout del código
-        uses: actions/checkout@v4
-
-      - name: Configurar Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Configurar Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-
-      - name: Validar secrets Firebase
-        env:
-          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
-          FIREBASE_WEB_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID }}
-          FIREBASE_ANDROID_API_KEY: ${{ secrets.FIREBASE_ANDROID_API_KEY }}
-          FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
-          FIREBASE_IOS_API_KEY: ${{ secrets.FIREBASE_IOS_API_KEY }}
-          FIREBASE_IOS_APP_ID: ${{ secrets.FIREBASE_IOS_APP_ID }}
-          FIREBASE_MESSAGING_ID: ${{ secrets.FIREBASE_MESSAGING_ID }}
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
-          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
-          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
-          FIREBASE_IOS_BUNDLE_ID: ${{ secrets.FIREBASE_IOS_BUNDLE_ID }}
-        run: |
-          set -e
-          required=(
-            FIREBASE_WEB_API_KEY FIREBASE_WEB_APP_ID
-            FIREBASE_ANDROID_API_KEY FIREBASE_ANDROID_APP_ID
-            FIREBASE_IOS_API_KEY FIREBASE_IOS_APP_ID
-            FIREBASE_MESSAGING_ID FIREBASE_PROJECT_ID
-            FIREBASE_AUTH_DOMAIN FIREBASE_DATABASE_URL
-            FIREBASE_STORAGE_BUCKET FIREBASE_MEASUREMENT_ID
-            FIREBASE_IOS_BUNDLE_ID
-          )
-          for key in "${required[@]}"; do
-            if [ -z "${!key}" ]; then
-              echo "Falta configurar el secret: $key"
-              exit 1
-            fi
-          done
-
-      - name: Generar lib/secret.dart desde Secrets
-        run: |
-          mkdir -p lib
-          cat > lib/secret.dart << 'EOF'
-          import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-
-          const FirebaseOptions web = FirebaseOptions(
-              apiKey: '${{ secrets.FIREBASE_WEB_API_KEY }}',
-              appId: '${{ secrets.FIREBASE_WEB_APP_ID }}',
-              messagingSenderId: '${{ secrets.FIREBASE_MESSAGING_ID }}',
-              projectId: '${{ secrets.FIREBASE_PROJECT_ID }}',
-              authDomain: '${{ secrets.FIREBASE_AUTH_DOMAIN }}',
-              databaseURL: '${{ secrets.FIREBASE_DATABASE_URL }}',
-              storageBucket: '${{ secrets.FIREBASE_STORAGE_BUCKET }}',
-              measurementId: '${{ secrets.FIREBASE_MEASUREMENT_ID }}',
-            );
-
-          const FirebaseOptions android = FirebaseOptions(
-              apiKey: '${{ secrets.FIREBASE_ANDROID_API_KEY }}',
-              appId: '${{ secrets.FIREBASE_ANDROID_APP_ID }}',
-              messagingSenderId: '${{ secrets.FIREBASE_MESSAGING_ID }}',
-              projectId: '${{ secrets.FIREBASE_PROJECT_ID }}',
-              databaseURL: '${{ secrets.FIREBASE_DATABASE_URL }}',
-              storageBucket: '${{ secrets.FIREBASE_STORAGE_BUCKET }}',
-            );
-
-          const FirebaseOptions ios = FirebaseOptions(
-              apiKey: '${{ secrets.FIREBASE_IOS_API_KEY }}',
-              appId: '${{ secrets.FIREBASE_IOS_APP_ID }}',
-              messagingSenderId: '${{ secrets.FIREBASE_MESSAGING_ID }}',
-              projectId: '${{ secrets.FIREBASE_PROJECT_ID }}',
-              databaseURL: '${{ secrets.FIREBASE_DATABASE_URL }}',
-              storageBucket: '${{ secrets.FIREBASE_STORAGE_BUCKET }}',
-              iosBundleId: '${{ secrets.FIREBASE_IOS_BUNDLE_ID }}',
-            );
-          EOF
-
-      - name: Instalar dependencias
-        run: flutter pub get
-
-      - name: Compilar APK release
-        run: flutter build apk --release
-
-      - name: Guardar APK como artefacto
-        uses: actions/upload-artifact@v4
-        with:
-          name: scarpa-android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
-
   build_web:
     name: Build Web version
     runs-on: ubuntu-latest
@@ -210,7 +109,6 @@ jobs:
   release:
     name: Publicar Release
     needs:
-      - build_android
       - build_web
     runs-on: ubuntu-latest
     permissions:
@@ -218,12 +116,6 @@ jobs:
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
-
-      - name: Descargar artefactos Android
-        uses: actions/download-artifact@v4
-        with:
-          name: scarpa-android-apk
-          path: dist/android
 
       - name: Descargar build web
         uses: actions/download-artifact@v4
@@ -256,9 +148,8 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             Cambios en esta versión:
-            - APK Android
             - Versión web actualizada
           draft: false
           prerelease: false
           files: |
-            dist/android/**/*.apk
+            docs/app/**

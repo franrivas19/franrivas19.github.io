@@ -32,6 +32,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  InputDecoration _buildInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.white,
+      labelStyle: const TextStyle(color: Colors.grey),
+      floatingLabelStyle: const TextStyle(color: Colors.grey),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.grey),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.deepPurpleAccent, width: 2),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     final uid = _service.currentUid;
     if (uid.isEmpty) {
@@ -98,26 +120,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 24),
               TextField(
                 controller: _nombreCtrl,
-                decoration: const InputDecoration(labelText: 'Nombre y Apellidos'),
+                style: const TextStyle(color: Colors.black),
+                decoration: _buildInputDecoration('Nombre y Apellidos'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _fotoCtrl,
-                decoration: const InputDecoration(labelText: 'Enlace de foto (URL)'),
+                style: const TextStyle(color: Colors.black),
+                decoration: _buildInputDecoration('Enlace de foto (URL)'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _correoCtrl,
-                decoration: const InputDecoration(labelText: 'Correo'),
+                style: const TextStyle(color: Colors.black),
+                decoration: _buildInputDecoration('Correo'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _fechaCtrl,
-                decoration: const InputDecoration(labelText: 'Fecha nacimiento (DD/MM/AAAA)'),
+                style: const TextStyle(color: Colors.black),
+                decoration: _buildInputDecoration('Fecha nacimiento (DD/MM/AAAA)'),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _posicion,
+                style: const TextStyle(color: Colors.black),
+                dropdownColor: Colors.white,
+                iconEnabledColor: Colors.deepPurpleAccent,
                 items: const [
                   DropdownMenuItem(value: 'Portero', child: Text('Portero')),
                   DropdownMenuItem(value: 'Cierre', child: Text('Cierre')),
@@ -131,7 +160,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     setState(() => _posicion = v);
                   }
                 },
-                decoration: const InputDecoration(labelText: 'Posicion preferida'),
+                decoration: _buildInputDecoration('Posicion preferida'),
               ),
               const SizedBox(height: 26),
               FilledButton(

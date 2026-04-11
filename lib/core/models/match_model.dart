@@ -92,4 +92,9 @@ class MatchModel {
       'hanVotado': hanVotado,
     };
   }
+
+  factory MatchModel.fromFirestore(Map<String, dynamic> data) {
+    return MatchModel.fromMap(data['id'] as String, data);
+  }
+
 }

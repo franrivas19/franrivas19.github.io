@@ -21,7 +21,7 @@ class AppTheme {
   static final ThemeData dark = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    scaffoldBackgroundColor: vipBlack,
+    scaffoldBackgroundColor: vipText,
     canvasColor: vipBlack,
     colorScheme: const ColorScheme.dark(
       primary: vipGold,
@@ -42,26 +42,26 @@ class AppTheme {
       ),
     ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: vipBlack,
-      foregroundColor: vipText,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
       elevation: 0,
       centerTitle: true,
       titleTextStyle: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w700,
-        color: vipText,
+        color: Colors.black,
         letterSpacing: 1.2,
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: vipGold,
-        foregroundColor: vipBlack,
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 32),
+        backgroundColor: Colors.deepPurpleAccent,
+        foregroundColor: vipText,
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 32),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         textStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
+          fontSize: 18,
+          fontWeight: FontWeight.w900,
           letterSpacing: 0.5,
         ),
         elevation: 0,
@@ -108,7 +108,7 @@ class AppTheme {
       displayLarge: TextStyle(
         fontSize: 32,
         fontWeight: FontWeight.w900,
-        color: vipText,
+        color: vipBlack,
         letterSpacing: 2,
       ),
       displayMedium: TextStyle(
@@ -131,6 +131,10 @@ class AppTheme {
         fontSize: 14,
         fontWeight: FontWeight.w400,
         color: vipMuted,
+      ),
+      headlineSmall: TextStyle(
+        color: vipBlack,
+        fontWeight: FontWeight.w900,
       ),
     ),
   );

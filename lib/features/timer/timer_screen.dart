@@ -289,12 +289,6 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 14),
-          FilledButton.icon(
-            onPressed: () => context.push('/crear-partido'),
-            icon: const Icon(Icons.add_circle_outline),
-            label: const Text('CREAR PARTIDO'),
-          ),
         ],
       ),
     );

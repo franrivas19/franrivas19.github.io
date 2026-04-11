@@ -4,7 +4,7 @@ class AppColors {
   static const Color local = Color(0xFFD5E5B5);
   static const Color visitante = Color(0xFF312E2E);
   static const Color dorado = Color(0xFFC2A679);
-  static const Color fondo = Color(0xFF111111);
+  static const Color fondo = Color(0xFFFFFFFF);
 
   static Color fromColorName(String color) {
     switch (color) {

@@ -11,7 +11,13 @@ class PlantillaScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final service = FirestoreService();
     return Scaffold(
-      appBar: AppBar(title: const Text('LA PLANTILLA')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => context.go('/resumen'),
+        ),
+        title: const Text('LA PLANTILLA', style: TextStyle(fontSize: 16)),
+      ),
       body: StreamBuilder<List<AppUser>>(
         stream: service.allUsers(),
         builder: (context, snapshot) {
@@ -46,22 +52,43 @@ class PlantillaScreen extends StatelessWidget {
                         )
                       else
                         _Fallback(name: u.nombre),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-                          decoration: const BoxDecoration(
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Colors.black87],
+                              colors: [
+                                Colors.transparent,
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.35),
+                                Colors.black.withValues(alpha: 0.92),
+                              ],
+                              stops: const [0.0, 0.62, 0.82, 1.0],
                             ),
                           ),
-                          child: Text(
-                            first,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                      Positioned(
+                        left: 10,
+                        right: 10,
+                        bottom: 10,
+                        child: Text(
+                          first,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black54,
+                                blurRadius: 8,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
                           ),
                         ),
                       ),

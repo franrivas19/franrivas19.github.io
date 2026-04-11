@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,197 +9,209 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> {
+  // Controles
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+
+  // Estado de la UI
   bool _loading = false;
-  String? _error;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-
-    _animationController.forward();
-  }
+  bool _passwordVisible = false;
+  String? _mensajeError;
 
   @override
   void dispose() {
-    _animationController.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _procesarFormulario() async {
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
 
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _error = 'Introduce correo y contrasena.');
+      setState(() => _mensajeError = 'Introduce correo y contraseña.');
       return;
     }
 
     setState(() {
       _loading = true;
-      _error = null;
+      _mensajeError = null;
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      if (!mounted) {
-        return;
-      }
-      context.go('/resumen');
+      await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+
+      if (mounted) context.go('/resumen');
     } on FirebaseAuthException catch (e) {
-      setState(() => _error = e.message ?? 'No se pudo iniciar sesion.');
-    } catch (_) {
-      setState(() => _error = 'Error inesperado iniciando sesion.');
+      setState(() => _mensajeError = e.message ?? 'Error de autenticación.');
+    } catch (e) {
+      setState(() => _mensajeError = 'Error: $e');
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (mounted) setState(() => _loading = false);
     }
+  }
+
+  InputDecoration _buildInputDecoration(String label, {Widget? suffixIcon}) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.white,
+      labelStyle: const TextStyle(color: Colors.grey),
+      floatingLabelStyle: const TextStyle(color: Colors.deepPurpleAccent),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.grey),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.deepPurpleAccent, width: 2),
+      ),
+      suffixIcon: suffixIcon,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('El Vestuario')),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppTheme.lightGrey, Colors.white],
-          ),
-        ),
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: ListView(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(30.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // TÍTULO (Estilo Kotlin: Black, 32.sp)
+                Stack(
+                  alignment: Alignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 24, offset: const Offset(0, 8))],
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [AppTheme.primaryBlue, AppTheme.darkBlue],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'SCARPA',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-                          TextField(
-                            controller: _emailCtrl,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(labelText: 'Correo'),
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: _passwordCtrl,
-                            obscureText: true,
-                            decoration: const InputDecoration(labelText: 'Contrasena'),
-                          ),
-                          const SizedBox(height: 24),
-                          AnimatedOpacity(
-                            opacity: _error != null ? 1.0 : 0.0,
-                            duration: const Duration(milliseconds: 300),
-                            child: _error != null
-                                ? Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEF4444).withOpacity(0.1),
-                                      border: Border.all(color: const Color(0xFFEF4444), width: 1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      _error!,
-                                      style: const TextStyle(color: Color(0xFFC90000), fontWeight: FontWeight.w500),
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                          if (_error != null) const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton(
-                              onPressed: _loading ? null : _login,
-                              child: _loading
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-                                    )
-                                  : const Text('Iniciar sesion'),
-                            ),
-                          ),
-                        ],
+                    Text(
+                      "EL VESTUARIO",
+                      style: TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.black.withValues(alpha: 0.95),
+                        letterSpacing: -0.8,
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    Center(
-                      child: Column(
-                        children: [
-                          TextButton(
-                            onPressed: () => context.push('/recuperar-contrasena'),
-                            child: const Text('¿Olvidaste tu contraseña?'),
-                          ),
-                          TextButton(
-                            onPressed: () => context.push('/registro'),
-                            child: const Text('¿Eres nuevo? ¡Apúntate a la peña!'),
-                          ),
-                        ],
+                    Transform.translate(
+                      offset: const Offset(0.7, 0),
+                      child: Text(
+                        "EL VESTUARIO",
+                        style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black.withValues(alpha: 0.95),
+                          letterSpacing: -0.8,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 32),
+
+                OutlinedTextField(
+                  controller: _emailCtrl,
+                  label: "Correo electrónico",
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: _buildInputDecoration("Correo electrónico"),
+                  style: const TextStyle(color: Colors.black),
+                ),
+                const SizedBox(height: 8),
+
+                // PASSWORD FIELD con Visibility Toggle
+                TextField(
+                  controller: _passwordCtrl,
+                  obscureText: !_passwordVisible,
+                  style: const TextStyle(letterSpacing: 2, color: Colors.black),
+                  decoration: _buildInputDecoration(
+                    "Contraseña",
+                    suffixIcon: IconButton(
+                      icon: Icon(_passwordVisible ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                if (_mensajeError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(_mensajeError!, style: const TextStyle(color: Colors.red)),
+                  ),
+
+                // BOTÓN PRINCIPAL (Estilo Kotlin: 56.dp height, 16.dp shape)
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: _loading ? null : _procesarFormulario,
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      backgroundColor: Colors.deepPurpleAccent, 
+                    ),
+                    child: _loading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            "SALTAR AL CAMPO",
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // TEXT BUTTON PARA CAMBIAR MODO
+                TextButton(
+                  onPressed: () => context.go('/registro'),
+                  child: Text(
+                    "¿Eres nuevo? Ficha por la peña",
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+// Widget auxiliar para mantener los OutlinedTextField limpios
+class OutlinedTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final bool isNumber;
+  final TextInputType? keyboardType;
+  final InputDecoration? decoration;
+  final TextStyle? style;
+
+  const OutlinedTextField({
+    super.key,
+    required this.controller,
+    required this.label,
+    this.isNumber = false,
+    this.keyboardType,
+    this.decoration,
+    this.style,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: isNumber ? TextInputType.number : keyboardType,
+      style: style,
+      decoration: decoration ?? InputDecoration(labelText: label),
     );
   }
 }

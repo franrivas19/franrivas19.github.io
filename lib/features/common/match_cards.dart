@@ -141,35 +141,135 @@ class UltimoPartidoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final team1Color = AppColors.fromColorName(match.color1);
+    final team2Color = AppColors.fromColorName(match.color2);
+
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 12,
+      shadowColor: Colors.black.withValues(alpha: 0.18),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        borderRadius: BorderRadius.circular(32),
+        child: Container(
+          height: 170,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            gradient: const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [Color(0xFFBDB7BD), Color(0xFFF4EEF5)],
+            ),
+          ),
+          child: Stack(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('ULTIMO RESULTADO', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.grey)),
-                  Text(match.fecha, style: const TextStyle(color: Colors.grey)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(child: _SmallTeam(name: match.equipo1, colorName: match.color1)),
-                  Text('${match.goles1}', style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900)),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('VS', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.grey)),
+              Positioned(
+                left: 24,
+                top: 22,
+                child: Text(
+                  'ULTIMO RESULTADO',
+                  style: TextStyle(
+                    color: Colors.black.withValues(alpha: 0.28),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    letterSpacing: 0.5,
                   ),
-                  Text('${match.goles2}', style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900)),
-                  Expanded(child: _SmallTeam(name: match.equipo2, colorName: match.color2)),
-                ],
+                ),
+              ),
+              Positioned(
+                right: 24,
+                top: 22,
+                child: Text(
+                  match.fecha,
+                  style: TextStyle(
+                    color: Colors.black.withValues(alpha: 0.42),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                top: 44,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.shield, color: team1Color, size: 58),
+                          const SizedBox(height: 6),
+                          Text(
+                            _teamAbbreviation(match.equipo1),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 20,
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            '${match.goles1}',
+                            style: const TextStyle(
+                              fontSize: 56,
+                              height: 0.9,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF17141D),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'VS',
+                            style: TextStyle(
+                              fontSize: 24,
+                              height: 1.8,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black.withValues(alpha: 0.42),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            '${match.goles2}',
+                            style: const TextStyle(
+                              fontSize: 56,
+                              height: 0.9,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF17141D),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.shield, color: team2Color, size: 58),
+                          const SizedBox(height: 6),
+                          Text(
+                            _teamAbbreviation(match.equipo2),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 20,
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -177,6 +277,21 @@ class UltimoPartidoCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _teamAbbreviation(String name) {
+  final parts = name.trim().split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+  if (parts.isEmpty) {
+    return '---';
+  }
+
+  final source = parts.length == 1 ? parts.first : parts.take(2).join(' ');
+  final cleaned = source.replaceAll(RegExp(r'[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]'), '');
+  if (cleaned.isEmpty) {
+    return source.substring(0, source.length.clamp(0, 3)).toUpperCase();
+  }
+
+  return cleaned.substring(0, cleaned.length.clamp(0, 3)).toUpperCase();
 }
 
 class _TeamBlock extends StatelessWidget {
@@ -206,23 +321,6 @@ class _TeamBlock extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-      ],
-    );
-  }
-}
-
-class _SmallTeam extends StatelessWidget {
-  const _SmallTeam({required this.name, required this.colorName});
-
-  final String name;
-  final String colorName;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(Icons.shield, color: AppColors.fromColorName(colorName), size: 28),
-        Text(name.substring(0, name.length.clamp(0, 3)).toUpperCase()),
       ],
     );
   }

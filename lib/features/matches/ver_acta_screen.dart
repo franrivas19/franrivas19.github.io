@@ -326,9 +326,11 @@ class VerActaScreen extends StatelessWidget {
   Widget _buildFormationCard(MatchModel match) {
     final team1 = _teamLineup(match, 1);
     final team2 = _teamLineup(match, 2);
+    final color1 = _teamColor(match.color1);
+    final color2 = _teamColor(match.color2);
 
     return Container(
-      height: 600,
+      height: 500,
       decoration: BoxDecoration(
         color: const Color(0xFF0D4AAE),
         borderRadius: BorderRadius.circular(20),
@@ -336,17 +338,12 @@ class VerActaScreen extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final w = constraints.maxWidth;
-            return Stack(
-              children: [
-                Positioned.fill(child: CustomPaint(painter: _PitchPainter())),
-                ..._buildPitchPlayers(team1, topTeam: true),
-                ..._buildPitchPlayers(team2, topTeam: false),
-              ],
-            );
-          },
+        child: Stack(
+          children: [
+            Positioned.fill(child: CustomPaint(painter: _PitchPainter())),
+            ..._buildFieldTeam(team1, color1, topTeam: false),
+            ..._buildFieldTeam(team2, color2, topTeam: true),
+          ],
         ),
       ),
     );
@@ -390,68 +387,107 @@ class VerActaScreen extends StatelessWidget {
         .toList();
   }
 
-  /// Builds player markers using absolute [Positioned] coordinates so each team
-  /// is strictly confined to its own half (top 300 px / bottom 300 px of the
-  /// 600 px tall pitch). This prevents the overlap that occurred with [Align].
-  List<Widget> _buildPitchPlayers(List<LineupPlayer> players, {required bool topTeam}) {
+  Color _teamColor(String colorName) {
+    switch (colorName) {
+      case 'Rojo':
+        return const Color(0xFFE53935);
+      case 'Azul':
+        return const Color(0xFF1E88E5);
+      case 'Verde':
+        return const Color(0xFF43A047);
+      case 'Amarillo':
+        return const Color(0xFFFFB300);
+      case 'Blanco':
+        return Colors.white;
+      case 'Negro':
+        return Colors.black;
+      case 'Morado':
+        return const Color(0xFF8E24AA);
+      case 'Naranja':
+        return const Color(0xFFF4511E);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  /// Builds player markers using role-based slots that mirror the Kotlin layout.
+  List<Widget> _buildFieldTeam(
+    List<LineupPlayer> players,
+    Color color,
+    {required bool topTeam}
+  ) {
     if (players.isEmpty) return const [];
 
-    const pitchH = 600.0;
-    const halfH = pitchH / 2;
-    const markerH = 80.0;
+    final goalkeeper = players.firstWhere(
+      (player) => player.posicionFutsal == 'POR' || player.ordenPortero == 1,
+      orElse: () => players.first,
+    );
+    final cierre = players.firstWhere(
+      (player) => player.posicionFutsal == 'CIE',
+      orElse: () => players.length > 1 ? players[1] : goalkeeper,
+    );
+    final remaining = players
+        .where((player) => player.id != goalkeeper.id && player.id != cierre.id)
+        .toList();
+    final alas = remaining.where((player) => player.posicionFutsal == 'ALA').toList();
+    final noAlas = remaining.where((player) => player.posicionFutsal != 'ALA').toList();
+    final pivot = players.firstWhere(
+      (player) => player.posicionFutsal == 'PIV',
+      orElse: () => noAlas.isNotEmpty ? noAlas.last : (remaining.isNotEmpty ? remaining.last : cierre),
+    );
 
-    final rows = _pitchRows(players.length);
+    final leftWing = alas.isNotEmpty ? alas.first : (remaining.isNotEmpty ? remaining.first : cierre);
+    final rightWing = alas.length > 1 ? alas[1] : (remaining.length > 1 ? remaining[1] : cierre);
 
     return [
-      for (var index = 0; index < players.length; index++)
-        _PositionedPlayer(
-          player: players[index],
-          topTeam: topTeam,
-          rows: rows,
-          playerIndex: index,
-          pitchH: pitchH,
-          halfH: halfH,
-          markerH: markerH,
-        ),
+      _buildFieldSlot(
+        player: goalkeeper,
+        color: color,
+        alignment: topTeam ? Alignment.topCenter : Alignment.bottomCenter,
+        inset: topTeam ? const EdgeInsets.only(top: 15) : const EdgeInsets.only(bottom: 15),
+      ),
+      _buildFieldSlot(
+        player: cierre,
+        color: color,
+        alignment: topTeam ? Alignment.topCenter : Alignment.bottomCenter,
+        inset: topTeam ? const EdgeInsets.only(top: 90) : const EdgeInsets.only(bottom: 90),
+      ),
+      _buildFieldSlot(
+        player: leftWing,
+        color: color,
+        alignment: Alignment(-1, topTeam ? -1 : 1),
+        inset: topTeam ? const EdgeInsets.only(top: 125, left: 25) : const EdgeInsets.only(bottom: 125, left: 25),
+      ),
+      _buildFieldSlot(
+        player: rightWing,
+        color: color,
+        alignment: Alignment(1, topTeam ? -1 : 1),
+        inset: topTeam ? const EdgeInsets.only(top: 125, right: 25) : const EdgeInsets.only(bottom: 125, right: 25),
+      ),
+      _buildFieldSlot(
+        player: pivot,
+        color: color,
+        alignment: topTeam ? Alignment.topCenter : Alignment.bottomCenter,
+        inset: topTeam ? const EdgeInsets.only(top: 180) : const EdgeInsets.only(bottom: 180),
+      ),
     ];
   }
 
-  /// Returns a list of (rowIndex, colInRow, totalInRow) for each player.
-  List<(int row, int col, int total)> _pitchRows(int count) {
-    // Distribute players into rows of at most 3
-    final result = <(int, int, int)>[];
-    if (count <= 1) {
-      result.add((0, 0, 1));
-    } else if (count == 2) {
-      result.addAll([(0, 0, 2), (0, 1, 2)]);
-    } else if (count == 3) {
-      result.add((0, 0, 1));          // row 0: 1 player (GK)
-      result.add((1, 0, 2));          // row 1: 2 players
-      result.add((1, 1, 2));
-    } else if (count == 4) {
-      result.add((0, 0, 1));
-      result.add((1, 0, 3));
-      result.add((1, 1, 3));
-      result.add((1, 2, 3));
-    } else if (count == 5) {
-      result.add((0, 0, 1));
-      result.add((1, 0, 3));
-      result.add((1, 1, 3));
-      result.add((1, 2, 3));
-      result.add((2, 0, 1));
-    } else {
-      // 6+: row0=1, row1=3, row2=rest
-      result.add((0, 0, 1));
-      result.add((1, 0, 3));
-      result.add((1, 1, 3));
-      result.add((1, 2, 3));
-      final remaining = count - 4;
-      for (var i = 0; i < remaining; i++) {
-        result.add((2, i, remaining));
-      }
-    }
-    return result;
+  Widget _buildFieldSlot({
+    required LineupPlayer player,
+    required Color color,
+    required Alignment alignment,
+    required EdgeInsets inset,
+  }) {
+    return Align(
+      alignment: alignment,
+      child: Padding(
+        padding: inset,
+        child: _PitchPlayerMarker(player: player, background: color),
+      ),
+    );
   }
+
 
 
 
@@ -735,78 +771,6 @@ class VerActaScreen extends StatelessWidget {
 
 
 // =============================================================================
-// POSITIONED PLAYER  — places each marker in its own half using pixel coords
-// =============================================================================
-
-class _PositionedPlayer extends StatelessWidget {
-  const _PositionedPlayer({
-    required this.player,
-    required this.topTeam,
-    required this.rows,
-    required this.playerIndex,
-    required this.pitchH,
-    required this.halfH,
-    required this.markerH,
-  });
-
-  final LineupPlayer player;
-  final bool topTeam;
-  final List<(int row, int col, int total)> rows;
-  final int playerIndex;
-  final double pitchH;
-  final double halfH;
-  final double markerH;
-
-  @override
-  Widget build(BuildContext context) {
-    final (row, col, total) = rows[playerIndex];
-
-    // How many distinct rows does this team use?
-    final numRows = rows.map((r) => r.$1).toSet().length;
-    // Vertical slot height within the half, with padding
-    const vPad = 10.0;
-    final slotH = (halfH - vPad * 2) / numRows;
-
-    // Centre Y of this row, measured from the TOP of the full pitch
-    final double rowCentreY;
-    if (topTeam) {
-      // top half: rows go top→bottom, first row near the top edge
-      rowCentreY = vPad + slotH * row + slotH / 2;
-    } else {
-      // bottom half: rows go bottom→top, first row near the bottom edge
-      rowCentreY = halfH + (halfH - vPad) - slotH * row - slotH / 2;
-    }
-
-    // Horizontal: divide width evenly among players in this row
-    // We use a FractionallySizedBox trick via a custom widget that reads
-    // the parent constraints — but since Stack gives us no width here,
-    // we use Positioned with left/right derived from fractions via
-    // a LayoutBuilder wrapper injected by the parent Stack via a builder.
-    // Simpler: return an Align that only constrains Y, then clip X per slot.
-
-    // Fraction of pitch width for the centre of this column
-    final double xFraction;
-    if (total == 1) {
-      xFraction = 0.5;
-    } else {
-      // evenly spaced with 10% margin on each side
-      const margin = 0.10;
-      xFraction = margin + (1 - 2 * margin) * col / (total - 1);
-    }
-
-    // Convert to Alignment coords: Alignment(x,y) where -1=left/top, 1=right/bottom
-    final alignX = xFraction * 2 - 1; // map [0,1] → [-1,1]
-    // rowCentreY is in px from top of full pitch (0..pitchH)
-    final alignY = (rowCentreY / pitchH) * 2 - 1; // map [0,pitchH] → [-1,1]
-
-    return Align(
-      alignment: Alignment(alignX, alignY),
-      child: _PitchPlayerMarker(player: player, topTeam: topTeam),
-    );
-  }
-}
-
-// =============================================================================
 // PITCH PAINTER
 // =============================================================================
 
@@ -920,20 +884,23 @@ class _HighlightCard extends StatelessWidget {
 // =============================================================================
 
 class _PitchPlayerMarker extends StatelessWidget {
-  const _PitchPlayerMarker({required this.player, required this.topTeam});
+  const _PitchPlayerMarker({required this.player, required this.background});
 
   final LineupPlayer player;
-  final bool topTeam;
+  final Color background;
 
   @override
   Widget build(BuildContext context) {
-    final firstName = player.nombre.split(' ').first;
+    final firstName = player.nombre.trim().isEmpty
+        ? 'Jugador'
+        : player.nombre.trim().split(' ').first;
     final isGoalkeeper =
         player.ordenPortero == 1 || player.posicionFutsal == 'POR';
     final label =
         firstName.length > 10 ? '${firstName.substring(0, 7)}...' : firstName;
     final fallbackLetter =
         firstName.isNotEmpty ? firstName.substring(0, 1).toUpperCase() : '?';
+    final textColor = background.computeLuminance() > 0.65 ? Colors.black : Colors.white;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -943,8 +910,7 @@ class _PitchPlayerMarker extends StatelessWidget {
           height: 52,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color:
-                topTeam ? const Color(0xFFEFEFEF) : const Color(0xFFF6F1EA),
+            color: background,
             border: Border.all(color: Colors.white, width: 2),
             boxShadow: [
               BoxShadow(
@@ -963,7 +929,7 @@ class _PitchPlayerMarker extends StatelessWidget {
                     child: Text(
                       isGoalkeeper ? 'P' : fallbackLetter,
                       style: TextStyle(
-                        color: Colors.black87,
+                        color: textColor,
                         fontWeight: FontWeight.w900,
                         fontSize: isGoalkeeper ? 20 : 18,
                       ),
@@ -974,7 +940,7 @@ class _PitchPlayerMarker extends StatelessWidget {
                   child: Text(
                     isGoalkeeper ? 'P' : fallbackLetter,
                     style: TextStyle(
-                      color: Colors.black87,
+                      color: textColor,
                       fontWeight: FontWeight.w900,
                       fontSize: isGoalkeeper ? 20 : 18,
                     ),

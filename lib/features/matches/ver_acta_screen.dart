@@ -43,11 +43,11 @@ class VerActaScreen extends StatelessWidget {
 
             return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream:
-              _db
-                  .collection('partidos')
-                  .doc(matchId)
-                  .collection('eventos_live')
-                  .snapshots(),
+                  _db
+                      .collection('partidos')
+                      .doc(matchId)
+                      .collection('eventos_live')
+                      .snapshots(),
               builder: (context, eventsSnap) {
                 final docs = eventsSnap.data?.docs ?? const [];
                 final events = _eventsFromFirestore(docs, match);
@@ -204,24 +204,24 @@ class VerActaScreen extends StatelessWidget {
   // ---------------------------------------------------------------------------
 
   Widget _buildMvpCard(
-      MatchModel match,
-      List<PlayerStat> stats,
-      Map<String, AppUser> usersById,
-      ) {
+    MatchModel match,
+    List<PlayerStat> stats,
+    Map<String, AppUser> usersById,
+  ) {
     final played = stats.where((s) => s.haJugado).toList();
     if (played.isEmpty) return const SizedBox.shrink();
 
     // Ordenar por valoración de AppUser; en empate, por goles y asistencias
     final mvp = (played.toList()
-      ..sort((a, b) {
-        final ratingA = usersById[a.id]?.valoracion ?? 0.0;
-        final ratingB = usersById[b.id]?.valoracion ?? 0.0;
-        final byRating = ratingB.compareTo(ratingA);
-        if (byRating != 0) return byRating;
-        final byGoals = b.goles.compareTo(a.goles);
-        if (byGoals != 0) return byGoals;
-        return b.asistencias.compareTo(a.asistencias);
-      }))
+          ..sort((a, b) {
+            final ratingA = usersById[a.id]?.valoracion ?? 0.0;
+            final ratingB = usersById[b.id]?.valoracion ?? 0.0;
+            final byRating = ratingB.compareTo(ratingA);
+            if (byRating != 0) return byRating;
+            final byGoals = b.goles.compareTo(a.goles);
+            if (byGoals != 0) return byGoals;
+            return b.asistencias.compareTo(a.asistencias);
+          }))
         .first;
 
     final allPlayers = [
@@ -229,14 +229,14 @@ class VerActaScreen extends StatelessWidget {
       ...match.alineacionDetallada2,
     ];
     final mvpLineup = allPlayers.firstWhere(
-          (p) => p.id == mvp.id,
+      (p) => p.id == mvp.id,
       orElse: () => LineupPlayer(id: mvp.id, nombre: mvp.nombre),
     );
 
     // Valoración desde AppUser; fallback a goles si no existe
     final rating = usersById[mvp.id]?.valoracion ?? 0.0;
     final displayValue =
-    rating > 0 ? rating.toStringAsFixed(1) : '${mvp.goles}';
+        rating > 0 ? rating.toStringAsFixed(1) : '${mvp.goles}';
 
     return Container(
       height: 120,
@@ -261,15 +261,15 @@ class VerActaScreen extends StatelessWidget {
               height: 120,
               child: mvpLineup.fotoUrl.trim().isNotEmpty
                   ? Image.network(
-                mvpLineup.fotoUrl.trim(),
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Center(
-                  child: Icon(Icons.person, color: Colors.white, size: 50),
-                ),
-              )
+                      mvpLineup.fotoUrl.trim(),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Icon(Icons.person, color: Colors.white, size: 50),
+                      ),
+                    )
                   : const Center(
-                child: Icon(Icons.person, color: Colors.white, size: 50),
-              ),
+                      child: Icon(Icons.person, color: Colors.white, size: 50),
+                    ),
             ),
           ),
           const SizedBox(width: 16),
@@ -336,12 +336,17 @@ class VerActaScreen extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
-        child: Stack(
-          children: [
-            Positioned.fill(child: CustomPaint(painter: _PitchPainter())),
-            ..._buildPitchPlayers(team1, topTeam: true),
-            ..._buildPitchPlayers(team2, topTeam: false),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final w = constraints.maxWidth;
+            return Stack(
+              children: [
+                Positioned.fill(child: CustomPaint(painter: _PitchPainter())),
+                ..._buildPitchPlayers(team1, topTeam: true),
+                ..._buildPitchPlayers(team2, topTeam: false),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -381,96 +386,74 @@ class VerActaScreen extends StatelessWidget {
         .where((player) => player.equipo == team && player.haJugado)
         .map(
           (player) => LineupPlayer(id: player.id, nombre: player.nombre),
-    )
+        )
         .toList();
   }
 
+  /// Builds player markers using absolute [Positioned] coordinates so each team
+  /// is strictly confined to its own half (top 300 px / bottom 300 px of the
+  /// 600 px tall pitch). This prevents the overlap that occurred with [Align].
   List<Widget> _buildPitchPlayers(List<LineupPlayer> players, {required bool topTeam}) {
     if (players.isEmpty) return const [];
 
-    final positions = _pitchPositions(players.length, topTeam: topTeam);
+    const pitchH = 600.0;
+    const halfH = pitchH / 2;
+    const markerH = 80.0;
+
+    final rows = _pitchRows(players.length);
+
     return [
       for (var index = 0; index < players.length; index++)
-        Align(
-          alignment: positions[index],
-          child: _PitchPlayerMarker(player: players[index], topTeam: topTeam),
+        _PositionedPlayer(
+          player: players[index],
+          topTeam: topTeam,
+          rows: rows,
+          playerIndex: index,
+          pitchH: pitchH,
+          halfH: halfH,
+          markerH: markerH,
         ),
     ];
   }
 
-  List<Alignment> _pitchPositions(int count, {required bool topTeam}) {
-    final topPositions = <int, List<Alignment>>{
-      1: [const Alignment(0, -0.72)],
-      2: [const Alignment(-0.38, -0.60), const Alignment(0.38, -0.60)],
-      3: [
-        const Alignment(0, -0.76),
-        const Alignment(-0.56, -0.38),
-        const Alignment(0.56, -0.38),
-      ],
-      4: [
-        const Alignment(0, -0.82),
-        const Alignment(-0.60, -0.48),
-        const Alignment(0.60, -0.48),
-        const Alignment(0, -0.10),
-      ],
-      5: [
-        const Alignment(0, -0.84),
-        const Alignment(0, -0.46),
-        const Alignment(-0.72, -0.10),
-        const Alignment(0.72, -0.10),
-        const Alignment(0, 0.28),
-      ],
-      6: [
-        const Alignment(-0.58, -0.58),
-        const Alignment(0, -0.62),
-        const Alignment(0.58, -0.58),
-        const Alignment(-0.58, -0.16),
-        const Alignment(0, -0.16),
-        const Alignment(0.58, -0.16),
-      ],
-    };
-    final bottomPositions = <int, List<Alignment>>{
-      1: [const Alignment(0, 0.72)],
-      2: [const Alignment(-0.38, 0.60), const Alignment(0.38, 0.60)],
-      3: [
-        const Alignment(0, 0.76),
-        const Alignment(-0.56, 0.38),
-        const Alignment(0.56, 0.38),
-      ],
-      4: [
-        const Alignment(0, 0.82),
-        const Alignment(-0.60, 0.48),
-        const Alignment(0.60, 0.48),
-        const Alignment(0, 0.10),
-      ],
-      5: [
-        const Alignment(0, 0.84),
-        const Alignment(0, 0.46),
-        const Alignment(-0.72, 0.10),
-        const Alignment(0.72, 0.10),
-        const Alignment(0, -0.28),
-      ],
-      6: [
-        const Alignment(-0.58, 0.58),
-        const Alignment(0, 0.62),
-        const Alignment(0.58, 0.58),
-        const Alignment(-0.58, 0.16),
-        const Alignment(0, 0.16),
-        const Alignment(0.58, 0.16),
-      ],
-    };
-
-    final positions = topTeam ? topPositions[count] : bottomPositions[count];
-    if (positions != null) return positions;
-
-    return List.generate(count, (index) {
-      final row = index ~/ 3;
-      final col = index % 3;
-      final x = -0.62 + (col * 0.62);
-      final baseY = topTeam ? -0.62 + (row * 0.26) : 0.62 - (row * 0.26);
-      return Alignment(x.clamp(-0.75, 0.75), baseY.clamp(-0.70, 0.70));
-    });
+  /// Returns a list of (rowIndex, colInRow, totalInRow) for each player.
+  List<(int row, int col, int total)> _pitchRows(int count) {
+    // Distribute players into rows of at most 3
+    final result = <(int, int, int)>[];
+    if (count <= 1) {
+      result.add((0, 0, 1));
+    } else if (count == 2) {
+      result.addAll([(0, 0, 2), (0, 1, 2)]);
+    } else if (count == 3) {
+      result.add((0, 0, 1));          // row 0: 1 player (GK)
+      result.add((1, 0, 2));          // row 1: 2 players
+      result.add((1, 1, 2));
+    } else if (count == 4) {
+      result.add((0, 0, 1));
+      result.add((1, 0, 3));
+      result.add((1, 1, 3));
+      result.add((1, 2, 3));
+    } else if (count == 5) {
+      result.add((0, 0, 1));
+      result.add((1, 0, 3));
+      result.add((1, 1, 3));
+      result.add((1, 2, 3));
+      result.add((2, 0, 1));
+    } else {
+      // 6+: row0=1, row1=3, row2=rest
+      result.add((0, 0, 1));
+      result.add((1, 0, 3));
+      result.add((1, 1, 3));
+      result.add((1, 2, 3));
+      final remaining = count - 4;
+      for (var i = 0; i < remaining; i++) {
+        result.add((2, i, remaining));
+      }
+    }
+    return result;
   }
+
+
 
   // ---------------------------------------------------------------------------
   // EVENTS TIMELINE
@@ -601,8 +584,8 @@ class VerActaScreen extends StatelessWidget {
     final topAssist = played.isEmpty
         ? null
         : (played.toList()
-      ..sort((a, b) => b.asistencias.compareTo(a.asistencias)))
-        .first;
+              ..sort((a, b) => b.asistencias.compareTo(a.asistencias)))
+            .first;
 
     return Row(
       children: [
@@ -630,10 +613,10 @@ class VerActaScreen extends StatelessWidget {
   // ---------------------------------------------------------------------------
 
   Widget _buildRatingsBoard(
-      MatchModel match,
-      Map<String, AppUser> usersById,
-      List<PlayerStat> stats,
-      ) {
+    MatchModel match,
+    Map<String, AppUser> usersById,
+    List<PlayerStat> stats,
+  ) {
     final team1 = _teamLineup(match, 1);
     final team2 = _teamLineup(match, 2);
 
@@ -664,9 +647,9 @@ class VerActaScreen extends StatelessWidget {
   // ---------------------------------------------------------------------------
 
   List<_MatchEvent> _eventsFromFirestore(
-      List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-      MatchModel match,
-      ) {
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    MatchModel match,
+  ) {
     final playersById = <String, LineupPlayer>{
       for (final player in match.alineacionDetallada1) player.id: player,
       for (final player in match.alineacionDetallada2) player.id: player,
@@ -705,15 +688,15 @@ class VerActaScreen extends StatelessWidget {
       final minute = _parseMinute(data['minuto']);
       final scorerName =
           (data['nombreGoleador'] as String?) ??
-              (data['scorerName'] as String?) ??
-              playersById[scorerId]?.nombre ??
-              'Jugador';
+          (data['scorerName'] as String?) ??
+          playersById[scorerId]?.nombre ??
+          'Jugador';
       final assistName = assistId.isEmpty
           ? ''
           : ((data['nombreAsistente'] as String?) ??
-          (data['assistName'] as String?) ??
-          playersById[assistId]?.nombre ??
-          '');
+              (data['assistName'] as String?) ??
+              playersById[assistId]?.nombre ??
+              '');
 
       if (team == 1) {
         score1++;
@@ -747,6 +730,79 @@ class VerActaScreen extends StatelessWidget {
     if (raw is num) return raw.toInt();
     if (raw is String) return int.tryParse(raw.replaceAll("'", '').trim()) ?? 0;
     return 0;
+  }
+}
+
+
+// =============================================================================
+// POSITIONED PLAYER  — places each marker in its own half using pixel coords
+// =============================================================================
+
+class _PositionedPlayer extends StatelessWidget {
+  const _PositionedPlayer({
+    required this.player,
+    required this.topTeam,
+    required this.rows,
+    required this.playerIndex,
+    required this.pitchH,
+    required this.halfH,
+    required this.markerH,
+  });
+
+  final LineupPlayer player;
+  final bool topTeam;
+  final List<(int row, int col, int total)> rows;
+  final int playerIndex;
+  final double pitchH;
+  final double halfH;
+  final double markerH;
+
+  @override
+  Widget build(BuildContext context) {
+    final (row, col, total) = rows[playerIndex];
+
+    // How many distinct rows does this team use?
+    final numRows = rows.map((r) => r.$1).toSet().length;
+    // Vertical slot height within the half, with padding
+    const vPad = 10.0;
+    final slotH = (halfH - vPad * 2) / numRows;
+
+    // Centre Y of this row, measured from the TOP of the full pitch
+    final double rowCentreY;
+    if (topTeam) {
+      // top half: rows go top→bottom, first row near the top edge
+      rowCentreY = vPad + slotH * row + slotH / 2;
+    } else {
+      // bottom half: rows go bottom→top, first row near the bottom edge
+      rowCentreY = halfH + (halfH - vPad) - slotH * row - slotH / 2;
+    }
+
+    // Horizontal: divide width evenly among players in this row
+    // We use a FractionallySizedBox trick via a custom widget that reads
+    // the parent constraints — but since Stack gives us no width here,
+    // we use Positioned with left/right derived from fractions via
+    // a LayoutBuilder wrapper injected by the parent Stack via a builder.
+    // Simpler: return an Align that only constrains Y, then clip X per slot.
+
+    // Fraction of pitch width for the centre of this column
+    final double xFraction;
+    if (total == 1) {
+      xFraction = 0.5;
+    } else {
+      // evenly spaced with 10% margin on each side
+      const margin = 0.10;
+      xFraction = margin + (1 - 2 * margin) * col / (total - 1);
+    }
+
+    // Convert to Alignment coords: Alignment(x,y) where -1=left/top, 1=right/bottom
+    final alignX = xFraction * 2 - 1; // map [0,1] → [-1,1]
+    // rowCentreY is in px from top of full pitch (0..pitchH)
+    final alignY = (rowCentreY / pitchH) * 2 - 1; // map [0,pitchH] → [-1,1]
+
+    return Align(
+      alignment: Alignment(alignX, alignY),
+      child: _PitchPlayerMarker(player: player, topTeam: topTeam),
+    );
   }
 }
 
@@ -875,9 +931,9 @@ class _PitchPlayerMarker extends StatelessWidget {
     final isGoalkeeper =
         player.ordenPortero == 1 || player.posicionFutsal == 'POR';
     final label =
-    firstName.length > 10 ? '${firstName.substring(0, 7)}...' : firstName;
+        firstName.length > 10 ? '${firstName.substring(0, 7)}...' : firstName;
     final fallbackLetter =
-    firstName.isNotEmpty ? firstName.substring(0, 1).toUpperCase() : '?';
+        firstName.isNotEmpty ? firstName.substring(0, 1).toUpperCase() : '?';
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -888,7 +944,7 @@ class _PitchPlayerMarker extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color:
-            topTeam ? const Color(0xFFEFEFEF) : const Color(0xFFF6F1EA),
+                topTeam ? const Color(0xFFEFEFEF) : const Color(0xFFF6F1EA),
             border: Border.all(color: Colors.white, width: 2),
             boxShadow: [
               BoxShadow(
@@ -901,29 +957,29 @@ class _PitchPlayerMarker extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: player.fotoUrl.trim().isNotEmpty
               ? Image.network(
-            player.fotoUrl.trim(),
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Center(
-              child: Text(
-                isGoalkeeper ? 'P' : fallbackLetter,
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontWeight: FontWeight.w900,
-                  fontSize: isGoalkeeper ? 20 : 18,
-                ),
-              ),
-            ),
-          )
+                  player.fotoUrl.trim(),
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Center(
+                    child: Text(
+                      isGoalkeeper ? 'P' : fallbackLetter,
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w900,
+                        fontSize: isGoalkeeper ? 20 : 18,
+                      ),
+                    ),
+                  ),
+                )
               : Center(
-            child: Text(
-              isGoalkeeper ? 'P' : fallbackLetter,
-              style: TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w900,
-                fontSize: isGoalkeeper ? 20 : 18,
-              ),
-            ),
-          ),
+                  child: Text(
+                    isGoalkeeper ? 'P' : fallbackLetter,
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w900,
+                      fontSize: isGoalkeeper ? 20 : 18,
+                    ),
+                  ),
+                ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -1127,7 +1183,7 @@ class _RatingPill extends StatelessWidget {
     if (value <= 2.0) return const Color(0xFFB71C1C);
     if (value <= 3.0) return const Color(0xFFEF5350);
     if (value <= 3.5) return const Color(0xFFFF9800);
-    if (value <= 4.3) return const Color(0xFFFFC107);
+    if (value <= 4.0) return const Color(0xFFFFC107);
     if (value <= 4.5) return const Color(0xFF66BB6A);
     if (value < 5.0) return const Color(0xFF4CAF50);
     return const Color(0xFFEFB04D);

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +8,7 @@ import '../../core/models/app_user.dart';
 import '../../core/models/lineup_player.dart';
 import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
+import '../common/app_bottom_nav.dart';
 
 enum FutsalFormation {
   rombo('1-2-1 (Rombo)'),
@@ -195,13 +197,15 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
             final match = matchSnap.data;
             if (matchSnap.connectionState == ConnectionState.waiting) {
               return const Scaffold(
+                backgroundColor: Color(0xFFF5F5F7),
                 body: Center(child: CircularProgressIndicator()),
               );
             }
             if (match == null) {
               return Scaffold(
-                appBar: AppBar(title: const Text('TURNOS')),
-                body: _NoMatchState(isAdmin: currentUser?.rol == 'admin'),
+                backgroundColor: const Color(0xFFF5F5F7),
+                body: const _NoMatchState(),
+                bottomNavigationBar: const AppBottomNavBar(selectedIndex: 2),
               );
             }
 
@@ -1680,60 +1684,151 @@ class _LiveCounts {
 }
 
 class _NoMatchState extends StatelessWidget {
-  const _NoMatchState({required this.isAdmin});
-
-  final bool isAdmin;
+  const _NoMatchState();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 132,
-            height: 132,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _TimerTurnosScreenState._gold.withValues(alpha: 0.55),
-              ),
-              gradient: RadialGradient(
-                colors: [
-                  _TimerTurnosScreenState._gold.withValues(alpha: 0.28),
-                  Colors.transparent,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 138,
+                    height: 138,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [Color(0x36C2A679), Colors.transparent],
+                        radius: 0.74,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.sports_soccer,
+                      color: Color(0xFFC2A679),
+                      size: 66,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  const Text(
+                    'EL BALÓN ESTÁ PARADO',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF1A1A1A),
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      'No hay ningún encuentro pendiente ni en juego en este momento.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF8A8A8A),
+                        fontSize: 17,
+                        height: 1.5,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 44),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(26),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.18),
+                          blurRadius: 18,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _NoMatchPitchPainter(),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF4A3E33),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  '¿QUÉ HACER AHORA?',
+                                  style: TextStyle(
+                                    color: Color(0xFFC2A679),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 34),
+                              const Text(
+                                'Toca descansar, hidratarse y analizar tácticas. Espera a que el administrador convoque el próximo encuentro.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  height: 1.45,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-            child: const Icon(
-              Icons.sports_soccer,
-              color: _TimerTurnosScreenState._gold,
-              size: 64,
-            ),
           ),
-          const SizedBox(height: 20),
-          const Text(
-            'EL BALON ESTA PARADO',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            isAdmin
-                ? 'Crea un partido desde el vestuario para preparar alineaciones y comenzar.'
-                : 'No hay ningun encuentro pendiente ni en juego ahora mismo.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
+}
+
+class _NoMatchPitchPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final line = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    canvas.drawCircle(center, size.width * 0.34, line);
+    canvas.drawLine(Offset(0, size.height / 2), Offset(size.width, size.height / 2), line);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: size.width * 0.30),
+      0,
+      math.pi,
+      false,
+      line,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

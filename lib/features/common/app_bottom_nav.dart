@@ -34,7 +34,7 @@ class AppBottomNavBar extends StatelessWidget {
               child: _NavItem(
                 selected: selectedIndex == 0,
                 icon: Icons.person,
-                label: 'Mi Perfil',
+                label: 'Inicio',
                 onTap: () => _go(context, 0),
               ),
             ),

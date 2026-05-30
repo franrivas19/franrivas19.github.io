@@ -43,11 +43,11 @@ class VerActaScreen extends StatelessWidget {
 
             return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream:
-                  _db
-                      .collection('partidos')
-                      .doc(matchId)
-                      .collection('eventos_live')
-                      .snapshots(),
+              _db
+                  .collection('partidos')
+                  .doc(matchId)
+                  .collection('eventos_live')
+                  .snapshots(),
               builder: (context, eventsSnap) {
                 final docs = eventsSnap.data?.docs ?? const [];
                 final events = _eventsFromFirestore(docs, match);
@@ -71,6 +71,12 @@ class VerActaScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
                     children: [
                       _buildSummaryHeader(match),
+                      const SizedBox(height: 24),
+                      _buildSectionTitle('PLANTILLAS'),
+                      const SizedBox(height: 10),
+                      _buildPlantillasBoard(match, stats),
+                      const SizedBox(height: 24),
+                      _buildMvpCard(match, stats, usersById),
                       const SizedBox(height: 24),
                       _buildSectionTitle('FORMACIÓN INICIAL'),
                       const SizedBox(height: 10),
@@ -97,6 +103,10 @@ class VerActaScreen extends StatelessWidget {
       },
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // SUMMARY HEADER
+  // ---------------------------------------------------------------------------
 
   Widget _buildSummaryHeader(MatchModel match) {
     return Card(
@@ -158,6 +168,161 @@ class VerActaScreen extends StatelessWidget {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // PLANTILLAS BOARD
+  // ---------------------------------------------------------------------------
+
+  Widget _buildPlantillasBoard(MatchModel match, List<PlayerStat> stats) {
+    final team1 = _teamLineup(match, 1);
+    final team2 = _teamLineup(match, 2);
+    final statsById = {for (final s in stats) s.id: s};
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _PlantillaColumn(
+            title: match.equipo1.toUpperCase(),
+            players: team1,
+            statsById: statsById,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _PlantillaColumn(
+            title: match.equipo2.toUpperCase(),
+            players: team2,
+            statsById: statsById,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // MVP CARD
+  // ---------------------------------------------------------------------------
+
+  Widget _buildMvpCard(
+      MatchModel match,
+      List<PlayerStat> stats,
+      Map<String, AppUser> usersById,
+      ) {
+    final played = stats.where((s) => s.haJugado).toList();
+    if (played.isEmpty) return const SizedBox.shrink();
+
+    // Ordenar por valoración de AppUser; en empate, por goles y asistencias
+    final mvp = (played.toList()
+      ..sort((a, b) {
+        final ratingA = usersById[a.id]?.valoracion ?? 0.0;
+        final ratingB = usersById[b.id]?.valoracion ?? 0.0;
+        final byRating = ratingB.compareTo(ratingA);
+        if (byRating != 0) return byRating;
+        final byGoals = b.goles.compareTo(a.goles);
+        if (byGoals != 0) return byGoals;
+        return b.asistencias.compareTo(a.asistencias);
+      }))
+        .first;
+
+    final allPlayers = [
+      ...match.alineacionDetallada1,
+      ...match.alineacionDetallada2,
+    ];
+    final mvpLineup = allPlayers.firstWhere(
+          (p) => p.id == mvp.id,
+      orElse: () => LineupPlayer(id: mvp.id, nombre: mvp.nombre),
+    );
+
+    // Valoración desde AppUser; fallback a goles si no existe
+    final rating = usersById[mvp.id]?.valoracion ?? 0.0;
+    final displayValue =
+    rating > 0 ? rating.toStringAsFixed(1) : '${mvp.goles}';
+
+    return Container(
+      height: 120,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFB8922A), Color(0xFFE8C96A), Color(0xFFB8922A)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          // Foto del MVP
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              bottomLeft: Radius.circular(20),
+            ),
+            child: SizedBox(
+              width: 110,
+              height: 120,
+              child: mvpLineup.fotoUrl.trim().isNotEmpty
+                  ? Image.network(
+                mvpLineup.fotoUrl.trim(),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Center(
+                  child: Icon(Icons.person, color: Colors.white, size: 50),
+                ),
+              )
+                  : const Center(
+                child: Icon(Icons.person, color: Colors.white, size: 50),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Textos
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'MVP DEL PARTIDO',
+                  style: TextStyle(
+                    color: Color(0xFF5A3A00),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  mvp.nombre.split(' ').first,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 26,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Valoración / goles
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: Text(
+              displayValue,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 44,
+                letterSpacing: -1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // FORMATION CARD
+  // ---------------------------------------------------------------------------
+
   Widget _buildFormationCard(MatchModel match) {
     final team1 = _teamLineup(match, 1);
     final team2 = _teamLineup(match, 2);
@@ -182,6 +347,10 @@ class VerActaScreen extends StatelessWidget {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // SECTION TITLE
+  // ---------------------------------------------------------------------------
+
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
@@ -194,45 +363,37 @@ class VerActaScreen extends StatelessWidget {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // HELPERS
+  // ---------------------------------------------------------------------------
+
   String _teamAbbr(String value) {
     final clean = value.trim();
-    if (clean.isEmpty) {
-      return '---';
-    }
+    if (clean.isEmpty) return '---';
     return clean.length <= 3 ? clean.toUpperCase() : clean.substring(0, 3).toUpperCase();
   }
 
   List<LineupPlayer> _teamLineup(MatchModel match, int team) {
     final source = team == 1 ? match.alineacionDetallada1 : match.alineacionDetallada2;
-    if (source.isNotEmpty) {
-      return source;
-    }
+    if (source.isNotEmpty) return source;
 
     return match.estadisticasJugadores
         .where((player) => player.equipo == team && player.haJugado)
         .map(
-          (player) => LineupPlayer(
-            id: player.id,
-            nombre: player.nombre,
-          ),
-        )
+          (player) => LineupPlayer(id: player.id, nombre: player.nombre),
+    )
         .toList();
   }
 
   List<Widget> _buildPitchPlayers(List<LineupPlayer> players, {required bool topTeam}) {
-    if (players.isEmpty) {
-      return const [];
-    }
+    if (players.isEmpty) return const [];
 
     final positions = _pitchPositions(players.length, topTeam: topTeam);
     return [
       for (var index = 0; index < players.length; index++)
         Align(
           alignment: positions[index],
-          child: _PitchPlayerMarker(
-            player: players[index],
-            topTeam: topTeam,
-          ),
+          child: _PitchPlayerMarker(player: players[index], topTeam: topTeam),
         ),
     ];
   }
@@ -300,9 +461,8 @@ class VerActaScreen extends StatelessWidget {
     };
 
     final positions = topTeam ? topPositions[count] : bottomPositions[count];
-    if (positions != null) {
-      return positions;
-    }
+    if (positions != null) return positions;
+
     return List.generate(count, (index) {
       final row = index ~/ 3;
       final col = index % 3;
@@ -311,6 +471,10 @@ class VerActaScreen extends StatelessWidget {
       return Alignment(x.clamp(-0.75, 0.75), baseY.clamp(-0.70, 0.70));
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // EVENTS TIMELINE
+  // ---------------------------------------------------------------------------
 
   Widget _buildEventsTimeline(List<_MatchEvent> events) {
     if (events.isEmpty) {
@@ -325,10 +489,7 @@ class VerActaScreen extends StatelessWidget {
         child: const Text(
           'Esperando eventos... ¡Que ruede el balón!',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white70,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
         ),
       );
     }
@@ -428,19 +589,20 @@ class VerActaScreen extends StatelessWidget {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // HIGHLIGHTS
+  // ---------------------------------------------------------------------------
+
   Widget _buildHighlights(List<PlayerStat> stats) {
     final played = stats.where((s) => s.haJugado).toList();
-    final topScorer =
-        played.isEmpty
-            ? null
-            : (played.toList()..sort((a, b) => b.goles.compareTo(a.goles)))
-                .first;
-    final topAssist =
-        played.isEmpty
-            ? null
-            : (played.toList()
-                  ..sort((a, b) => b.asistencias.compareTo(a.asistencias)))
-                .first;
+    final topScorer = played.isEmpty
+        ? null
+        : (played.toList()..sort((a, b) => b.goles.compareTo(a.goles))).first;
+    final topAssist = played.isEmpty
+        ? null
+        : (played.toList()
+      ..sort((a, b) => b.asistencias.compareTo(a.asistencias)))
+        .first;
 
     return Row(
       children: [
@@ -463,11 +625,15 @@ class VerActaScreen extends StatelessWidget {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // RATINGS BOARD
+  // ---------------------------------------------------------------------------
+
   Widget _buildRatingsBoard(
-    MatchModel match,
-    Map<String, AppUser> usersById,
-    List<PlayerStat> stats,
-  ) {
+      MatchModel match,
+      Map<String, AppUser> usersById,
+      List<PlayerStat> stats,
+      ) {
     final team1 = _teamLineup(match, 1);
     final team2 = _teamLineup(match, 2);
 
@@ -493,10 +659,14 @@ class VerActaScreen extends StatelessWidget {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // EVENTS FROM FIRESTORE
+  // ---------------------------------------------------------------------------
+
   List<_MatchEvent> _eventsFromFirestore(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-    MatchModel match,
-  ) {
+      List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+      MatchModel match,
+      ) {
     final playersById = <String, LineupPlayer>{
       for (final player in match.alineacionDetallada1) player.id: player,
       for (final player in match.alineacionDetallada2) player.id: player,
@@ -511,9 +681,7 @@ class VerActaScreen extends StatelessWidget {
         final minuteA = _parseMinute(dataA['minuto']);
         final minuteB = _parseMinute(dataB['minuto']);
         final byMinute = minuteA.compareTo(minuteB);
-        if (byMinute != 0) {
-          return byMinute;
-        }
+        if (byMinute != 0) return byMinute;
         final timestampA = (dataA['timestamp'] as num?)?.toInt() ?? 0;
         final timestampB = (dataB['timestamp'] as num?)?.toInt() ?? 0;
         return timestampA.compareTo(timestampB);
@@ -526,34 +694,26 @@ class VerActaScreen extends StatelessWidget {
     for (var index = 0; index < ordered.length; index++) {
       final data = ordered[index].data();
       final type = (data['tipo'] as String?) ?? (data['type'] as String?) ?? '';
-      if (type.toUpperCase() != 'GOL' && type.toLowerCase() != 'goal') {
-        continue;
-      }
+      if (type.toUpperCase() != 'GOL' && type.toLowerCase() != 'goal') continue;
 
       final scorerId =
-          (data['idGoleador'] as String?) ??
-          (data['scorerId'] as String?) ??
-          '';
+          (data['idGoleador'] as String?) ?? (data['scorerId'] as String?) ?? '';
       final assistId =
-          (data['idAsistente'] as String?) ??
-          (data['assistId'] as String?) ??
-          '';
+          (data['idAsistente'] as String?) ?? (data['assistId'] as String?) ?? '';
       final team =
-          ((data['equipo'] as num?) ?? (data['scorerTeam'] as num?))?.toInt() ??
-          1;
+          ((data['equipo'] as num?) ?? (data['scorerTeam'] as num?))?.toInt() ?? 1;
       final minute = _parseMinute(data['minuto']);
       final scorerName =
           (data['nombreGoleador'] as String?) ??
-          (data['scorerName'] as String?) ??
-          playersById[scorerId]?.nombre ??
-          'Jugador';
-      final assistName =
-          assistId.isEmpty
-              ? ''
-              : ((data['nombreAsistente'] as String?) ??
-                  (data['assistName'] as String?) ??
-                  playersById[assistId]?.nombre ??
-                  '');
+              (data['scorerName'] as String?) ??
+              playersById[scorerId]?.nombre ??
+              'Jugador';
+      final assistName = assistId.isEmpty
+          ? ''
+          : ((data['nombreAsistente'] as String?) ??
+          (data['assistName'] as String?) ??
+          playersById[assistId]?.nombre ??
+          '');
 
       if (team == 1) {
         score1++;
@@ -576,9 +736,7 @@ class VerActaScreen extends StatelessWidget {
 
     events.sort((a, b) {
       final byMinute = a.minute.compareTo(b.minute);
-      if (byMinute != 0) {
-        return byMinute;
-      }
+      if (byMinute != 0) return byMinute;
       return a.order.compareTo(b.order);
     });
 
@@ -586,24 +744,23 @@ class VerActaScreen extends StatelessWidget {
   }
 
   int _parseMinute(dynamic raw) {
-    if (raw is num) {
-      return raw.toInt();
-    }
-    if (raw is String) {
-      return int.tryParse(raw.replaceAll("'", '').trim()) ?? 0;
-    }
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw.replaceAll("'", '').trim()) ?? 0;
     return 0;
   }
 }
 
+// =============================================================================
+// PITCH PAINTER
+// =============================================================================
+
 class _PitchPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final line =
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.35)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 4;
+    final line = Paint()
+      ..color = Colors.white.withValues(alpha: 0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
 
     final topArc = Rect.fromCenter(
       center: Offset(size.width / 2, -14),
@@ -628,11 +785,23 @@ class _PitchPainter extends CustomPainter {
       Rect.fromLTWH(size.width * 0.35, size.height - 8, size.width * 0.30, 8),
       goalPaint,
     );
+
+    // Barra de color equipo 1 (arriba) — azul
+    final team1Paint = Paint()..color = const Color(0xFF1565C0);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, 5), team1Paint);
+
+    // Barra de color equipo 2 (abajo) — rojo
+    final team2Paint = Paint()..color = const Color(0xFFB71C1C);
+    canvas.drawRect(Rect.fromLTWH(0, size.height - 5, size.width, 5), team2Paint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+// =============================================================================
+// HIGHLIGHT CARD
+// =============================================================================
 
 class _HighlightCard extends StatelessWidget {
   const _HighlightCard({
@@ -690,6 +859,10 @@ class _HighlightCard extends StatelessWidget {
   }
 }
 
+// =============================================================================
+// PITCH PLAYER MARKER
+// =============================================================================
+
 class _PitchPlayerMarker extends StatelessWidget {
   const _PitchPlayerMarker({required this.player, required this.topTeam});
 
@@ -699,9 +872,12 @@ class _PitchPlayerMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firstName = player.nombre.split(' ').first;
-    final isGoalkeeper = player.ordenPortero == 1 || player.posicionFutsal == 'POR';
-    final label = firstName.length > 10 ? '${firstName.substring(0, 7)}...' : firstName;
-    final fallbackLetter = firstName.isNotEmpty ? firstName.substring(0, 1).toUpperCase() : '?';
+    final isGoalkeeper =
+        player.ordenPortero == 1 || player.posicionFutsal == 'POR';
+    final label =
+    firstName.length > 10 ? '${firstName.substring(0, 7)}...' : firstName;
+    final fallbackLetter =
+    firstName.isNotEmpty ? firstName.substring(0, 1).toUpperCase() : '?';
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -711,7 +887,8 @@ class _PitchPlayerMarker extends StatelessWidget {
           height: 52,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: topTeam ? const Color(0xFFEFEFEF) : const Color(0xFFF6F1EA),
+            color:
+            topTeam ? const Color(0xFFEFEFEF) : const Color(0xFFF6F1EA),
             border: Border.all(color: Colors.white, width: 2),
             boxShadow: [
               BoxShadow(
@@ -722,33 +899,31 @@ class _PitchPlayerMarker extends StatelessWidget {
             ],
           ),
           clipBehavior: Clip.antiAlias,
-          child:
-              player.fotoUrl.trim().isNotEmpty
-                  ? Image.network(
-                    player.fotoUrl.trim(),
-                    fit: BoxFit.cover,
-                    errorBuilder:
-                        (context, error, stackTrace) => Center(
-                          child: Text(
-                            isGoalkeeper ? 'P' : fallbackLetter,
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w900,
-                              fontSize: isGoalkeeper ? 20 : 18,
-                            ),
-                          ),
-                        ),
-                  )
-                  : Center(
-                    child: Text(
-                      isGoalkeeper ? 'P' : fallbackLetter,
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w900,
-                        fontSize: isGoalkeeper ? 20 : 18,
-                      ),
-                    ),
-                  ),
+          child: player.fotoUrl.trim().isNotEmpty
+              ? Image.network(
+            player.fotoUrl.trim(),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Center(
+              child: Text(
+                isGoalkeeper ? 'P' : fallbackLetter,
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w900,
+                  fontSize: isGoalkeeper ? 20 : 18,
+                ),
+              ),
+            ),
+          )
+              : Center(
+            child: Text(
+              isGoalkeeper ? 'P' : fallbackLetter,
+              style: TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w900,
+                fontSize: isGoalkeeper ? 20 : 18,
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -774,6 +949,113 @@ class _PitchPlayerMarker extends StatelessWidget {
     );
   }
 }
+
+// =============================================================================
+// PLANTILLA COLUMN  (nueva — muestra goles y asistencias por jugador)
+// =============================================================================
+
+class _PlantillaColumn extends StatelessWidget {
+  const _PlantillaColumn({
+    required this.title,
+    required this.players,
+    required this.statsById,
+  });
+
+  final String title;
+  final List<LineupPlayer> players;
+  final Map<String, PlayerStat> statsById;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.62),
+            fontWeight: FontWeight.w800,
+            fontSize: 17,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ...players.map((player) {
+          final stat = statsById[player.id];
+          final goles = stat?.goles ?? 0;
+          final asistencias = stat?.asistencias ?? 0;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    player.nombre.split(' ').first,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                if (goles > 0) _StatChip(icon: '⚽', value: goles),
+                if (asistencias > 0) ...[
+                  const SizedBox(width: 4),
+                  _StatChip(icon: '👟', value: asistencias),
+                ],
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+// =============================================================================
+// STAT CHIP  (nueva — pastilla de goles / asistencias)
+// =============================================================================
+
+class _StatChip extends StatelessWidget {
+  const _StatChip({required this.icon, required this.value});
+
+  final String icon;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 12)),
+          const SizedBox(width: 3),
+          Text(
+            '$value',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// RATINGS COLUMN
+// =============================================================================
 
 class _RatingsColumn extends StatelessWidget {
   const _RatingsColumn({
@@ -832,22 +1114,23 @@ class _RatingsColumn extends StatelessWidget {
   }
 }
 
+// =============================================================================
+// RATING PILL
+// =============================================================================
+
 class _RatingPill extends StatelessWidget {
   const _RatingPill({required this.value});
 
   final double value;
 
   Color get _background {
-    if (value >= 4.2) {
-      return const Color(0xFF63C05A);
-    }
-    if (value >= 3.7) {
-      return const Color(0xFFF5BE1A);
-    }
-    if (value >= 3.2) {
-      return const Color(0xFFFF9B1A);
-    }
-    return const Color(0xFFEF5A5A);
+    if (value <= 2.0) return const Color(0xFFB71C1C);
+    if (value <= 3.0) return const Color(0xFFEF5350);
+    if (value <= 3.5) return const Color(0xFFFF9800);
+    if (value <= 4.3) return const Color(0xFFFFC107);
+    if (value <= 4.5) return const Color(0xFF66BB6A);
+    if (value < 5.0) return const Color(0xFF4CAF50);
+    return const Color(0xFFEFB04D);
   }
 
   @override
@@ -871,6 +1154,10 @@ class _RatingPill extends StatelessWidget {
     );
   }
 }
+
+// =============================================================================
+// MATCH EVENT MODEL
+// =============================================================================
 
 class _MatchEvent {
   const _MatchEvent({

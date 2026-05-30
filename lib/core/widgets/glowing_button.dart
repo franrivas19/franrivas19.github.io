@@ -7,17 +7,18 @@ class GlowingButton extends StatefulWidget {
   final bool enabled;
 
   const GlowingButton({
-    Key? key,
+    super.key,
     required this.onPressed,
     required this.child,
     this.enabled = true,
-  }) : super(key: key);
+  });
 
   @override
   State<GlowingButton> createState() => _GlowingButtonState();
 }
 
-class _GlowingButtonState extends State<GlowingButton> with SingleTickerProviderStateMixin {
+class _GlowingButtonState extends State<GlowingButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _glowController;
   bool _isPressed = false;
 
@@ -46,7 +47,9 @@ class _GlowingButtonState extends State<GlowingButton> with SingleTickerProvider
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryBlue.withOpacity(0.4 * _glowController.value),
+                color: AppTheme.primaryBlue.withValues(
+                  alpha: 0.4 * _glowController.value,
+                ),
                 blurRadius: 20 * _glowController.value,
                 offset: Offset(0, 8 * _glowController.value),
                 spreadRadius: 4 * _glowController.value,
@@ -54,20 +57,21 @@ class _GlowingButtonState extends State<GlowingButton> with SingleTickerProvider
             ],
           ),
           child: FilledButton(
-            onPressed: widget.enabled
-                ? () {
-                    if (!_isPressed) {
-                      _isPressed = true;
-                      _glowController.forward().then((_) {
-                        if (mounted) {
-                          setState(() => _isPressed = false);
-                          _glowController.reverse();
-                        }
-                      });
+            onPressed:
+                widget.enabled
+                    ? () {
+                      if (!_isPressed) {
+                        _isPressed = true;
+                        _glowController.forward().then((_) {
+                          if (mounted) {
+                            setState(() => _isPressed = false);
+                            _glowController.reverse();
+                          }
+                        });
+                      }
+                      widget.onPressed();
                     }
-                    widget.onPressed();
-                  }
-                : null,
+                    : null,
             child: Opacity(
               opacity: 1.0 - (0.2 * _glowController.value),
               child: widget.child,

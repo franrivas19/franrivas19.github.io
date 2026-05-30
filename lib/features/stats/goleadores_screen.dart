@@ -68,7 +68,10 @@ class _DynamicBackgroundState extends State<_DynamicBackground>
       child: Stack(
         children: [
           AnimatedBuilder(
-            animation: Listenable.merge([_primaryController, _secondaryController]),
+            animation: Listenable.merge([
+              _primaryController,
+              _secondaryController,
+            ]),
             builder: (context, child) {
               return Container(
                 decoration: BoxDecoration(
@@ -77,11 +80,28 @@ class _DynamicBackgroundState extends State<_DynamicBackground>
                     end: Alignment.bottomRight,
                     colors: [
                       AppTheme.darkGrey,
-                      AppTheme.mediumGrey.withOpacity(0.7 + 0.3 * math.sin(_primaryController.value * math.pi * 2)),
-                      AppTheme.darkGrey.withOpacity(0.9),
-                      AppTheme.darkBlue.withOpacity(0.5 + 0.5 * math.sin(_secondaryController.value * math.pi * 2)),
+                      AppTheme.mediumGrey.withValues(
+                        alpha:
+                            0.7 +
+                            0.3 *
+                                math.sin(
+                                  _primaryController.value * math.pi * 2,
+                                ),
+                      ),
+                      AppTheme.darkGrey.withValues(alpha: 0.9),
+                      AppTheme.darkBlue.withValues(
+                        alpha:
+                            0.5 +
+                            0.5 *
+                                math.sin(
+                                  _secondaryController.value * math.pi * 2,
+                                ),
+                      ),
                     ],
-                    transform: GradientRotation((_primaryController.value + _secondaryController.value) * 3.14159),
+                    transform: GradientRotation(
+                      (_primaryController.value + _secondaryController.value) *
+                          3.14159,
+                    ),
                   ),
                 ),
                 child: widget.child,
@@ -103,13 +123,14 @@ class _DynamicBackgroundState extends State<_DynamicBackground>
 class RippleEffect extends StatefulWidget {
   final Offset position;
 
-  const RippleEffect({required this.position});
+  const RippleEffect({super.key, required this.position});
 
   @override
   State<RippleEffect> createState() => _RippleEffectState();
 }
 
-class _RippleEffectState extends State<RippleEffect> with SingleTickerProviderStateMixin {
+class _RippleEffectState extends State<RippleEffect>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _radiusAnimation;
   late Animation<double> _opacityAnimation;
@@ -122,13 +143,15 @@ class _RippleEffectState extends State<RippleEffect> with SingleTickerProviderSt
       vsync: this,
     );
 
-    _radiusAnimation = Tween<double>(begin: 0, end: 300).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _radiusAnimation = Tween<double>(
+      begin: 0,
+      end: 300,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    _opacityAnimation = Tween<double>(begin: 0.5, end: 0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _opacityAnimation = Tween<double>(
+      begin: 0.5,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.forward();
   }
@@ -150,11 +173,17 @@ class _RippleEffectState extends State<RippleEffect> with SingleTickerProviderSt
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: AppTheme.goldAccent.withOpacity(_opacityAnimation.value),
+              color: AppTheme.goldAccent.withValues(
+                alpha: _opacityAnimation.value,
+              ),
               width: 2,
             ),
           ),
-          transform: Matrix4.translationValues(-_radiusAnimation.value, -_radiusAnimation.value, 0),
+          transform: Matrix4.translationValues(
+            -_radiusAnimation.value,
+            -_radiusAnimation.value,
+            0,
+          ),
         );
       },
     );
@@ -171,12 +200,15 @@ class _GoleadoresScreenState extends State<GoleadoresScreen> {
         child: StreamBuilder<List<AppUser>>(
           stream: service.allUsers(),
           builder: (context, snapshot) {
-            final users = (snapshot.data ?? [])
-              ..sort((a, b) => b.goles.compareTo(a.goles));
+            final users =
+                (snapshot.data ?? [])
+                  ..sort((a, b) => b.goles.compareTo(a.goles));
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppTheme.primaryBlue,
+                  ),
                 ),
               );
             }
@@ -203,38 +235,58 @@ class _GoleadoresScreenState extends State<GoleadoresScreen> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         decoration: BoxDecoration(
-                          gradient: isTopThree
-                              ? LinearGradient(
-                                  colors: [AppTheme.primaryBlue, AppTheme.lightBlue],
-                                )
-                              : null,
+                          gradient:
+                              isTopThree
+                                  ? LinearGradient(
+                                    colors: [
+                                      AppTheme.primaryBlue,
+                                      AppTheme.lightBlue,
+                                    ],
+                                  )
+                                  : null,
                           color: isTopThree ? null : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: (isTopThree ? AppTheme.primaryBlue : Colors.black).withOpacity(0.25),
+                              color: (isTopThree
+                                      ? AppTheme.primaryBlue
+                                      : Colors.black)
+                                  .withValues(alpha: 0.25),
                               blurRadius: 12,
                               offset: const Offset(0, 6),
                             ),
                           ],
                         ),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           leading: Container(
                             width: 50,
                             height: 50,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              gradient: isTopThree
-                                  ? const LinearGradient(
-                                      colors: [AppTheme.goldAccent, AppTheme.darkGold],
-                                    )
-                                  : LinearGradient(
-                                      colors: [AppTheme.lightGrey, AppTheme.accentGrey],
-                                    ),
+                              gradient:
+                                  isTopThree
+                                      ? const LinearGradient(
+                                        colors: [
+                                          AppTheme.goldAccent,
+                                          AppTheme.darkGold,
+                                        ],
+                                      )
+                                      : LinearGradient(
+                                        colors: [
+                                          AppTheme.lightGrey,
+                                          AppTheme.accentGrey,
+                                        ],
+                                      ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: (isTopThree ? AppTheme.goldAccent : AppTheme.accentGrey).withOpacity(0.4),
+                                  color: (isTopThree
+                                          ? AppTheme.goldAccent
+                                          : AppTheme.accentGrey)
+                                      .withValues(alpha: 0.4),
                                   blurRadius: 8,
                                 ),
                               ],
@@ -245,7 +297,10 @@ class _GoleadoresScreenState extends State<GoleadoresScreen> {
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900,
-                                  color: isTopThree ? Colors.white : AppTheme.darkGrey,
+                                  color:
+                                      isTopThree
+                                          ? Colors.white
+                                          : AppTheme.darkGrey,
                                 ),
                               ),
                             ),
@@ -255,14 +310,18 @@ class _GoleadoresScreenState extends State<GoleadoresScreen> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: isTopThree ? Colors.white : AppTheme.darkGrey,
+                              color:
+                                  isTopThree ? Colors.white : AppTheme.darkGrey,
                             ),
                           ),
                           subtitle: Text(
                             'PJ ${u.pj}',
                             style: TextStyle(
                               fontSize: 13,
-                              color: isTopThree ? Colors.white70 : AppTheme.accentGrey,
+                              color:
+                                  isTopThree
+                                      ? Colors.white70
+                                      : AppTheme.accentGrey,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -271,7 +330,10 @@ class _GoleadoresScreenState extends State<GoleadoresScreen> {
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.w900,
-                              color: isTopThree ? AppTheme.goldAccent : AppTheme.primaryBlue,
+                              color:
+                                  isTopThree
+                                      ? AppTheme.goldAccent
+                                      : AppTheme.primaryBlue,
                             ),
                           ),
                         ),

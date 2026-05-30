@@ -28,14 +28,16 @@ class VerActaScreen extends StatelessWidget {
           );
         }
 
-        final stats = [...match.estadisticasJugadores]..sort((a, b) => a.equipo.compareTo(b.equipo));
+        final stats = [...match.estadisticasJugadores]
+          ..sort((a, b) => a.equipo.compareTo(b.equipo));
 
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: _db
-              .collection('partidos')
-              .doc(matchId)
-              .collection('eventos_live')
-              .snapshots(),
+          stream:
+              _db
+                  .collection('partidos')
+                  .doc(matchId)
+                  .collection('eventos_live')
+                  .snapshots(),
           builder: (context, eventsSnap) {
             final docs = eventsSnap.data?.docs ?? const [];
             final events = _eventsFromFirestore(docs, stats);
@@ -43,7 +45,10 @@ class VerActaScreen extends StatelessWidget {
             return Scaffold(
               backgroundColor: const Color(0xFF07070A),
               appBar: AppBar(
-                title: const Text('Resumen del Partido', style: TextStyle(fontWeight: FontWeight.w800)),
+                title: const Text(
+                  'Resumen del Partido',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
                 backgroundColor: const Color(0xFF07070A),
                 foregroundColor: Colors.white,
                 leading: IconButton(
@@ -110,7 +115,11 @@ class VerActaScreen extends StatelessWidget {
               ),
               child: const Text(
                 'FINALIZADO',
-                style: TextStyle(color: Color(0xFFC8AC80), fontWeight: FontWeight.w900, letterSpacing: 0.3),
+                style: TextStyle(
+                  color: Color(0xFFC8AC80),
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.3,
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -119,10 +128,15 @@ class VerActaScreen extends StatelessWidget {
                 return Row(
                   children: [
                     Expanded(
-                      child: _TeamScoreBlock(name: match.equipo1, color: team1Color),
+                      child: _TeamScoreBlock(
+                        name: match.equipo1,
+                        color: team1Color,
+                      ),
                     ),
                     ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.42),
+                      constraints: BoxConstraints(
+                        maxWidth: constraints.maxWidth * 0.42,
+                      ),
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
@@ -137,7 +151,10 @@ class VerActaScreen extends StatelessWidget {
                       ),
                     ),
                     Expanded(
-                      child: _TeamScoreBlock(name: match.equipo2, color: team2Color),
+                      child: _TeamScoreBlock(
+                        name: match.equipo2,
+                        color: team2Color,
+                      ),
                     ),
                   ],
                 );
@@ -161,22 +178,33 @@ class VerActaScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPitchCard(MatchModel match, List<PlayerStat> stats, {required int team}) {
+  Widget _buildPitchCard(
+    MatchModel match,
+    List<PlayerStat> stats, {
+    required int team,
+  }) {
     final players = stats.where((s) => s.haJugado && s.equipo == team).toList();
-    final color = team == 1 ? _shieldColor(match.color1) : _shieldColor(match.color2);
+    final color =
+        team == 1 ? _shieldColor(match.color1) : _shieldColor(match.color2);
 
     return Container(
       height: 355,
       decoration: BoxDecoration(
         color: const Color(0xFF1A6B21),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 2),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.35),
+          width: 2,
+        ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
-            CustomPaint(size: const Size(double.infinity, double.infinity), painter: _PitchPainter()),
+            CustomPaint(
+              size: const Size(double.infinity, double.infinity),
+              painter: _PitchPainter(),
+            ),
             ..._buildPlayerMarkers(players, color),
           ],
         ),
@@ -190,7 +218,10 @@ class VerActaScreen extends StatelessWidget {
         Center(
           child: Text(
             'Sin jugadores',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w700),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ];
@@ -260,50 +291,80 @@ class VerActaScreen extends StatelessWidget {
   }
 
   Widget _buildEventsTimeline(List<_MatchEvent> events) {
-    final source = events.isEmpty
-      ? [const _MatchEvent(playerName: 'Sin eventos', minute: 0, order: 0)]
-      : events;
+    final source =
+        events.isEmpty
+            ? [
+              const _MatchEvent(playerName: 'Sin eventos', minute: 0, order: 0),
+            ]
+            : events;
     return Column(
-      children: source.map((event) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 42,
-                child: Text(
-                  event.minute == 0 ? '-' : '${event.minute}\'',
-                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
-                ),
+      children:
+          source.map((event) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 42,
+                    child: Text(
+                      event.minute == 0 ? '-' : '${event.minute}\'',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 20,
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 14,
+                          height: 14,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Container(width: 2, height: 22, color: Colors.white30),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      event.playerName == 'Sin eventos'
+                          ? event.playerName
+                          : '⚽  Gol de ${event.playerName}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.88),
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(
-                width: 20,
-                child: Column(
-                  children: [
-                    Container(width: 14, height: 14, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
-                    Container(width: 2, height: 22, color: Colors.white30),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  event.playerName == 'Sin eventos' ? event.playerName : '⚽  Gol de ${event.playerName}',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.88), fontSize: 15.5, fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
+            );
+          }).toList(),
     );
   }
 
   Widget _buildHighlights(List<PlayerStat> stats) {
     final played = stats.where((s) => s.haJugado).toList();
-    final topScorer = played.isEmpty ? null : (played.toList()..sort((a, b) => b.goles.compareTo(a.goles))).first;
-    final topAssist = played.isEmpty ? null : (played.toList()..sort((a, b) => b.asistencias.compareTo(a.asistencias))).first;
+    final topScorer =
+        played.isEmpty
+            ? null
+            : (played.toList()..sort((a, b) => b.goles.compareTo(a.goles)))
+                .first;
+    final topAssist =
+        played.isEmpty
+            ? null
+            : (played.toList()
+                  ..sort((a, b) => b.asistencias.compareTo(a.asistencias)))
+                .first;
 
     return Row(
       children: [
@@ -333,9 +394,19 @@ class VerActaScreen extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _RatingsColumn(title: match.equipo1.toUpperCase(), players: team1)),
+        Expanded(
+          child: _RatingsColumn(
+            title: match.equipo1.toUpperCase(),
+            players: team1,
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _RatingsColumn(title: match.equipo2.toUpperCase(), players: team2)),
+        Expanded(
+          child: _RatingsColumn(
+            title: match.equipo2.toUpperCase(),
+            players: team2,
+          ),
+        ),
       ],
     );
   }
@@ -400,23 +471,28 @@ class VerActaScreen extends StatelessWidget {
   ) {
     final namesById = <String, String>{for (final s in stats) s.id: s.nombre};
 
-    final events = docs.asMap().entries.map((entry) {
-      final index = entry.key;
-      final data = entry.value.data();
-      final idGoleador = data['idGoleador'] as String?;
-      final nombreData = data['nombreGoleador'] as String?;
-      final minute = _parseMinute(data['minuto']);
+    final events =
+        docs.asMap().entries.map((entry) {
+          final index = entry.key;
+          final data = entry.value.data();
+          final idGoleador = data['idGoleador'] as String?;
+          final scorerId = idGoleador ?? data['scorerId'] as String?;
+          final nombreData =
+              (data['nombreGoleador'] as String?) ??
+              (data['scorerName'] as String?);
+          final minute = _parseMinute(data['minuto']);
 
-      final name = (idGoleador != null ? namesById[idGoleador] : null) ??
-          nombreData ??
-          (idGoleador ?? 'Jugador');
+          final name =
+              (scorerId != null ? namesById[scorerId] : null) ??
+              nombreData ??
+              (scorerId ?? 'Jugador');
 
-      return _MatchEvent(
-        playerName: name.split(' ').first,
-        minute: minute,
-        order: index,
-      );
-    }).toList();
+          return _MatchEvent(
+            playerName: name.split(' ').first,
+            minute: minute,
+            order: index,
+          );
+        }).toList();
 
     events.sort((a, b) {
       final byMinute = a.minute.compareTo(b.minute);
@@ -457,7 +533,11 @@ class _TeamScoreBlock extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+          ),
         ),
       ],
     );
@@ -472,7 +552,10 @@ class _ShieldIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(size: Size(size, size), painter: _ShieldPainter(color: color));
+    return CustomPaint(
+      size: Size(size, size),
+      painter: _ShieldPainter(color: color),
+    );
   }
 }
 
@@ -483,48 +566,86 @@ class _ShieldPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(size.width * 0.18, size.height * 0.12)
-      ..lineTo(size.width * 0.82, size.height * 0.12)
-      ..quadraticBezierTo(size.width * 0.96, size.height * 0.12, size.width * 0.94, size.height * 0.28)
-      ..lineTo(size.width * 0.94, size.height * 0.58)
-      ..quadraticBezierTo(size.width * 0.92, size.height * 0.88, size.width * 0.50, size.height * 0.98)
-      ..quadraticBezierTo(size.width * 0.08, size.height * 0.88, size.width * 0.06, size.height * 0.58)
-      ..lineTo(size.width * 0.06, size.height * 0.28)
-      ..quadraticBezierTo(size.width * 0.04, size.height * 0.12, size.width * 0.18, size.height * 0.12)
-      ..close();
+    final path =
+        Path()
+          ..moveTo(size.width * 0.18, size.height * 0.12)
+          ..lineTo(size.width * 0.82, size.height * 0.12)
+          ..quadraticBezierTo(
+            size.width * 0.96,
+            size.height * 0.12,
+            size.width * 0.94,
+            size.height * 0.28,
+          )
+          ..lineTo(size.width * 0.94, size.height * 0.58)
+          ..quadraticBezierTo(
+            size.width * 0.92,
+            size.height * 0.88,
+            size.width * 0.50,
+            size.height * 0.98,
+          )
+          ..quadraticBezierTo(
+            size.width * 0.08,
+            size.height * 0.88,
+            size.width * 0.06,
+            size.height * 0.58,
+          )
+          ..lineTo(size.width * 0.06, size.height * 0.28)
+          ..quadraticBezierTo(
+            size.width * 0.04,
+            size.height * 0.12,
+            size.width * 0.18,
+            size.height * 0.12,
+          )
+          ..close();
 
     final fill = Paint()..color = color;
     canvas.drawPath(path, fill);
 
-    final stroke = Paint()
-      ..color = const Color(0xFFC8AC80)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.03;
+    final stroke =
+        Paint()
+          ..color = const Color(0xFFC8AC80)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = size.width * 0.03;
     canvas.drawPath(path, stroke);
   }
 
   @override
-  bool shouldRepaint(covariant _ShieldPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _ShieldPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class _PitchPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final line = Paint()
-      ..color = Colors.white.withValues(alpha: 0.35)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
+    final line =
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.35)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 4;
 
-    final topArc = Rect.fromCenter(center: Offset(size.width / 2, -14), width: size.width * 0.46, height: 110);
+    final topArc = Rect.fromCenter(
+      center: Offset(size.width / 2, -14),
+      width: size.width * 0.46,
+      height: 110,
+    );
     canvas.drawArc(topArc, 0, math.pi, false, line);
 
-    final bottomArc = Rect.fromCenter(center: Offset(size.width / 2, size.height + 14), width: size.width * 0.46, height: 110);
+    final bottomArc = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height + 14),
+      width: size.width * 0.46,
+      height: 110,
+    );
     canvas.drawArc(bottomArc, math.pi, math.pi, false, line);
 
     final goalPaint = Paint()..color = Colors.white.withValues(alpha: 0.9);
-    canvas.drawRect(Rect.fromLTWH(size.width * 0.35, 0, size.width * 0.30, 8), goalPaint);
-    canvas.drawRect(Rect.fromLTWH(size.width * 0.35, size.height - 8, size.width * 0.30, 8), goalPaint);
+    canvas.drawRect(
+      Rect.fromLTWH(size.width * 0.35, 0, size.width * 0.30, 8),
+      goalPaint,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(size.width * 0.35, size.height - 8, size.width * 0.30, 8),
+      goalPaint,
+    );
   }
 
   @override
@@ -539,7 +660,8 @@ class _PlayerMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initial = player.nombre.isNotEmpty ? player.nombre[0].toUpperCase() : '?';
+    final initial =
+        player.nombre.isNotEmpty ? player.nombre[0].toUpperCase() : '?';
 
     return Column(
       children: [
@@ -550,11 +672,18 @@ class _PlayerMarker extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.72), width: 2),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.72),
+              width: 2,
+            ),
           ),
           child: Text(
             initial,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 17,
+            ),
           ),
         ),
         const SizedBox(height: 6),
@@ -569,7 +698,11 @@ class _PlayerMarker extends StatelessWidget {
             player.nombre.split(' ').first,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 7.5),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 7.5,
+            ),
           ),
         ),
       ],
@@ -578,7 +711,11 @@ class _PlayerMarker extends StatelessWidget {
 }
 
 class _HighlightCard extends StatelessWidget {
-  const _HighlightCard({required this.title, required this.name, required this.value});
+  const _HighlightCard({
+    required this.title,
+    required this.name,
+    required this.value,
+  });
 
   final String title;
   final String name;
@@ -597,11 +734,32 @@ class _HighlightCard extends StatelessWidget {
         children: [
           const Icon(Icons.emoji_events, color: Color(0xFFC8AC80), size: 30),
           const SizedBox(height: 10),
-          Text(title, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.55),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: Color(0xFFC8AC80), fontWeight: FontWeight.w500)),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFFC8AC80),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -621,7 +779,12 @@ class _RatingsColumn extends StatelessWidget {
       children: [
         Text(
           title,
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.62), fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 0.4),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.62),
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            letterSpacing: 0.4,
+          ),
         ),
         const SizedBox(height: 10),
         ...players.map(
@@ -629,20 +792,45 @@ class _RatingsColumn extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 10),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(color: const Color(0xFF16181E), borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(
+                color: const Color(0xFF16181E),
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(p.nombre, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15.5)),
+                        Text(
+                          p.nombre,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15.5,
+                          ),
+                        ),
                         const SizedBox(height: 6),
-                        Text('${p.goles} G  •  ${p.asistencias} A', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13)),
+                        Text(
+                          '${p.goles} G  •  ${p.asistencias} A',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  Text('-', style: TextStyle(color: Colors.white.withValues(alpha: 0.66), fontSize: 22, fontWeight: FontWeight.w700)),
+                  Text(
+                    '-',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.66),
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -654,7 +842,11 @@ class _RatingsColumn extends StatelessWidget {
 }
 
 class _BottomMenuItem extends StatelessWidget {
-  const _BottomMenuItem({required this.icon, required this.label, required this.onTap});
+  const _BottomMenuItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -672,7 +864,14 @@ class _BottomMenuItem extends StatelessWidget {
           children: [
             Icon(icon, color: const Color(0xFF3F3A4C), size: 29),
             const SizedBox(height: 8),
-            Text(label, style: const TextStyle(color: Color(0xFF3F3A4C), fontWeight: FontWeight.w500, fontSize: 17)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF3F3A4C),
+                fontWeight: FontWeight.w500,
+                fontSize: 17,
+              ),
+            ),
           ],
         ),
       ),
@@ -681,7 +880,11 @@ class _BottomMenuItem extends StatelessWidget {
 }
 
 class _MatchEvent {
-  const _MatchEvent({required this.playerName, required this.minute, required this.order});
+  const _MatchEvent({
+    required this.playerName,
+    required this.minute,
+    required this.order,
+  });
 
   final String playerName;
   final int minute;

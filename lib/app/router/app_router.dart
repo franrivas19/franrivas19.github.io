@@ -12,6 +12,7 @@ import '../../features/home/resumen_screen.dart';
 import '../../features/matches/acta_screen.dart';
 import '../../features/matches/create_match_screen.dart';
 import '../../features/matches/edit_match_screen.dart';
+import '../../features/matches/live_score_screen.dart';
 import '../../features/matches/ver_acta_screen.dart';
 import '../../features/matches/votar_partido_screen.dart';
 import '../../features/profile/edit_profile_screen.dart';
@@ -22,12 +23,10 @@ import '../../features/timer/timer_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: FirebaseAuth.instance.currentUser == null ? '/login' : '/resumen',
+    initialLocation:
+        FirebaseAuth.instance.currentUser == null ? '/login' : '/resumen',
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/registro',
         builder: (context, state) => const RegisterScreen(),
@@ -44,10 +43,7 @@ class AppRouter {
         path: '/timer',
         builder: (context, state) => const TimerTurnosScreen(),
       ),
-      GoRoute(
-        path: '/acta',
-        builder: (context, state) => const ActaScreen(),
-      ),
+      GoRoute(path: '/acta', builder: (context, state) => const ActaScreen()),
       GoRoute(
         path: '/plantilla',
         builder: (context, state) => const PlantillaScreen(),
@@ -107,10 +103,18 @@ class AppRouter {
           return EditMatchScreen(matchId: id);
         },
       ),
+      GoRoute(
+        path: '/live-score/:partidoId',
+        builder: (context, state) {
+          final id = state.pathParameters['partidoId'] ?? '';
+          return LiveScoreScreen(matchId: id);
+        },
+      ),
     ],
     redirect: (context, state) {
       final isLoggedIn = FirebaseAuth.instance.currentUser != null;
-      final inAuthFlow = state.matchedLocation == '/login' ||
+      final inAuthFlow =
+          state.matchedLocation == '/login' ||
           state.matchedLocation == '/registro' ||
           state.matchedLocation == '/recuperar-contrasena';
 
@@ -122,8 +126,8 @@ class AppRouter {
       }
       return null;
     },
-    errorBuilder: (context, state) => const Scaffold(
-      body: Center(child: Text('Ruta no encontrada')),
-    ),
+    errorBuilder:
+        (context, state) =>
+            const Scaffold(body: Center(child: Text('Ruta no encontrada'))),
   );
 }

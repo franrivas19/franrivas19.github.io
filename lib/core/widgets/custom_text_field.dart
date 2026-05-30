@@ -23,7 +23,8 @@ class CustomTextField extends StatefulWidget {
   State<CustomTextField> createState() => _CustomTextFieldState();
 }
 
-class _CustomTextFieldState extends State<CustomTextField> with SingleTickerProviderStateMixin {
+class _CustomTextFieldState extends State<CustomTextField>
+    with SingleTickerProviderStateMixin {
   late AnimationController _focusController;
   late FocusNode _focusNode;
   bool _isFocused = false;
@@ -69,7 +70,9 @@ class _CustomTextFieldState extends State<CustomTextField> with SingleTickerProv
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryBlue.withOpacity(0.1 * _focusController.value),
+                color: AppTheme.primaryBlue.withValues(
+                  alpha: 0.1 * _focusController.value,
+                ),
                 blurRadius: 12 * (1 + _focusController.value),
                 offset: Offset(0, 4 * _focusController.value),
                 spreadRadius: 2 * _focusController.value,
@@ -86,21 +89,32 @@ class _CustomTextFieldState extends State<CustomTextField> with SingleTickerProv
               suffixIcon: widget.suffixIcon,
               filled: true,
               fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 16,
+                horizontal: 16,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
+                borderSide: const BorderSide(
+                  color: Color(0xFFE0E0E0),
+                  width: 1,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: const Color(0xFFE0E0E0).withOpacity(0.5 + 0.5 * _focusController.value),
+                  color: const Color(
+                    0xFFE0E0E0,
+                  ).withValues(alpha: 0.5 + 0.5 * _focusController.value),
                   width: 1 + _focusController.value,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2.5),
+                borderSide: const BorderSide(
+                  color: AppTheme.primaryBlue,
+                  width: 2.5,
+                ),
               ),
               labelStyle: TextStyle(
                 color: _isFocused ? AppTheme.primaryBlue : AppTheme.accentGrey,

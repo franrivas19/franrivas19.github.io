@@ -1,56 +1,29 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../core/models/app_user.dart';
+import '../../core/models/lineup_player.dart';
+import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
 
-class Usuario {
-  const Usuario({required this.id, required this.nombre});
+enum FutsalFormation {
+  rombo('1-2-1 (Rombo)'),
+  cuadrado('2-2 (Cuadrado)'),
+  yGriega('1-1-2 (Y)');
 
-  final int id;
-  final String nombre;
+  const FutsalFormation(this.label);
+
+  final String label;
+
+  static FutsalFormation fromLabel(String label) {
+    return FutsalFormation.values.firstWhere(
+      (f) => f.label == label,
+      orElse: () => FutsalFormation.rombo,
+    );
+  }
 }
-
-enum FaseTurno {
-  seleccionarDeporte,
-  seleccionarEquipos,
-  jugando,
-}
-
-enum Deporte {
-  futsal(5, 'FUT', 'SAL'),
-  fut7(7, 'FUT', '7'),
-  fut11(11, 'FUT', '11');
-
-  const Deporte(this.requeridasPorEquipo, this.deporteNombre, this.numeroNombre);
-
-  final int requeridasPorEquipo;
-  final String deporteNombre;
-  final String numeroNombre;
-}
-
-const List<Usuario> _usuariosHardcode = [
-  Usuario(id: 1, nombre: 'JUAN'),
-  Usuario(id: 2, nombre: 'PEDRO'),
-  Usuario(id: 3, nombre: 'LUIS'),
-  Usuario(id: 4, nombre: 'MARIO'),
-  Usuario(id: 5, nombre: 'DIEGO'),
-  Usuario(id: 6, nombre: 'RUBEN'),
-  Usuario(id: 7, nombre: 'NICO'),
-  Usuario(id: 8, nombre: 'TONI'),
-  Usuario(id: 9, nombre: 'SERGIO'),
-  Usuario(id: 10, nombre: 'ANDRES'),
-  Usuario(id: 11, nombre: 'ISRA'),
-  Usuario(id: 12, nombre: 'JOSE ROMERO'),
-  Usuario(id: 13, nombre: 'FRAN R.'),
-  Usuario(id: 14, nombre: 'BB'),
-  Usuario(id: 15, nombre: 'AA'),
-  Usuario(id: 16, nombre: 'KK'),
-];
-
-const Color _colorEquipoOscuro = Color(0xFF1E1E1E);
-const Color _colorError = Color(0xFFEF4444);
 
 class TimerTurnosScreen extends StatefulWidget {
   const TimerTurnosScreen({super.key});
@@ -60,17 +33,26 @@ class TimerTurnosScreen extends StatefulWidget {
 }
 
 class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
-  final _service = FirestoreService();
-  Deporte? _deporte;
-  FaseTurno _fase = FaseTurno.seleccionarDeporte;
-  List<Usuario> _equipoOscuro = [];
-  List<Usuario> _equipoClaro = [];
-  Usuario? _jugadorActual;
+  static const int _turnDuration = 360;
+  static const Color _gold = Color(0xFFC2A679);
+  static const Color _dark = Color(0xFF1A1A1A);
+  static const Color _softGreen = Color(0xFFD5E5B5);
+  static const Color _danger = Color(0xFFE53935);
 
-  int _indiceTurno = 0;
-  int _segundos = 360;
-  bool _timerActivo = false;
+  final _service = FirestoreService();
+
   Timer? _timer;
+  String? _configuredMatchId;
+  List<LineupPlayer> _lineup1 = [];
+  List<LineupPlayer> _lineup2 = [];
+  FutsalFormation _formation1 = FutsalFormation.rombo;
+  FutsalFormation _formation2 = FutsalFormation.rombo;
+  int _turnIndex = 0;
+  int _seconds = _turnDuration;
+  int _changeCountdown = -1;
+  bool _active = false;
+  bool _starting = false;
+  bool _savingGoal = false;
 
   @override
   void dispose() {
@@ -78,41 +60,51 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
     super.dispose();
   }
 
-  void _reiniciar() {
-    _timer?.cancel();
-    setState(() {
-      _deporte = null;
-      _fase = FaseTurno.seleccionarDeporte;
-      _equipoOscuro = [];
-      _equipoClaro = [];
-      _jugadorActual = null;
-      _indiceTurno = 0;
-      _segundos = 360;
-      _timerActivo = false;
-    });
-  }
-
-  void _iniciarJuego() {
-    final deporte = _deporte;
-    if (deporte == null) {
+  void _syncFromMatch(MatchModel match, List<AppUser> users) {
+    if (_configuredMatchId == match.id) {
       return;
     }
 
-    if (_equipoOscuro.length == deporte.requeridasPorEquipo &&
-        _equipoClaro.length == deporte.requeridasPorEquipo) {
-      setState(() {
-        _fase = FaseTurno.jugando;
-        _timerActivo = true;
-        _segundos = 360;
-        _indiceTurno = 0;
-      });
-      _ensureTimerState();
-    }
+    final byId = {for (final user in users) user.id: user};
+    final fallback1 =
+        match.convocatoria1
+            .where((id) => byId.containsKey(id))
+            .map((id) => _lineupFromUser(byId[id]!))
+            .toList();
+    final fallback2 =
+        match.convocatoria2
+            .where((id) => byId.containsKey(id))
+            .map((id) => _lineupFromUser(byId[id]!))
+            .toList();
+
+    _configuredMatchId = match.id;
+    _lineup1 =
+        match.alineacionDetallada1.isNotEmpty
+            ? match.alineacionDetallada1
+            : fallback1;
+    _lineup2 =
+        match.alineacionDetallada2.isNotEmpty
+            ? match.alineacionDetallada2
+            : fallback2;
+    _formation1 = FutsalFormation.fromLabel(match.formacion1);
+    _formation2 = FutsalFormation.fromLabel(match.formacion2);
+    _turnIndex = match.indiceTurno;
+    _seconds = match.tiempoSegundos;
+    _active = match.estado == 'En Juego' && match.tiempoSegundos > 0;
+    _ensureTimer();
   }
 
-  void _ensureTimerState() {
+  LineupPlayer _lineupFromUser(AppUser user) {
+    return LineupPlayer(
+      id: user.id,
+      nombre: user.nombre.split(' ').first,
+      fotoUrl: user.fotoUrl,
+    );
+  }
+
+  void _ensureTimer() {
     _timer?.cancel();
-    if (!(_fase == FaseTurno.jugando && _timerActivo && _segundos > 0)) {
+    if (!_active) {
       return;
     }
 
@@ -121,223 +113,474 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
         timer.cancel();
         return;
       }
-
-      if (!(_fase == FaseTurno.jugando && _timerActivo && _segundos > 0)) {
+      if (!_active || _seconds <= 0) {
         timer.cancel();
         return;
       }
-
       setState(() {
-        _segundos--;
-        if (_segundos == 0) {
-          _timerActivo = false;
-          timer.cancel();
+        _seconds--;
+        if (_seconds == 0) {
+          _active = false;
+          _changeCountdown = 15;
         }
       });
     });
   }
 
-  void _siguienteTurno() {
-    final deporte = _deporte;
-    if (deporte == null) {
+  Future<void> _startMatch(MatchModel match) async {
+    if (_lineup1.isEmpty || _lineup2.isEmpty) {
+      _showMessage('Configura la convocatoria antes de iniciar.');
       return;
     }
 
+    setState(() => _starting = true);
+    try {
+      await _service.startMatch(
+        matchId: match.id,
+        adminPartido: match.adminPartido,
+        alineacion1: _lineup1,
+        alineacion2: _lineup2,
+        formacion1: _formation1.label,
+        formacion2: _formation2.label,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _turnIndex = 0;
+        _seconds = _turnDuration;
+        _active = true;
+      });
+      _ensureTimer();
+    } catch (e) {
+      _showMessage('Error al iniciar: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _starting = false);
+      }
+    }
+  }
+
+  Future<void> _nextTurn(MatchModel match) async {
+    final nextIndex = _turnIndex + 1;
     setState(() {
-      _indiceTurno = (_indiceTurno + 1) % deporte.requeridasPorEquipo;
-      _segundos = 360;
-      _timerActivo = true;
+      _turnIndex = nextIndex;
+      _seconds = _turnDuration;
+      _changeCountdown = -1;
+      _active = true;
     });
-    _ensureTimerState();
+    _ensureTimer();
+    await _service.updateTurnState(
+      matchId: match.id,
+      indiceTurno: nextIndex,
+      tiempoSegundos: _turnDuration,
+    );
   }
 
-  List<Usuario> get _usuariosDisponibles {
-    final deporte = _deporte;
-    if (deporte == null) {
-      return [];
-    }
-
-    return _usuariosHardcode
-        .take(deporte.requeridasPorEquipo * 2)
-        .where((u) => !_equipoOscuro.contains(u) && !_equipoClaro.contains(u))
-        .toList();
-  }
-
-  Usuario? _nextJugadorActual(Usuario? actual, List<Usuario> disponibles) {
-    if (disponibles.isEmpty) {
-      return null;
-    }
-
-    if (actual == null) {
-      return disponibles.first;
-    }
-
-    final index = disponibles.indexWhere((u) => u.id == actual.id);
-    if (index == -1) {
-      return disponibles.first;
-    }
-    return disponibles[(index + 1) % disponibles.length];
-  }
-
-  void _seleccionarDeporte(Deporte deporte) {
-    setState(() {
-      _deporte = deporte;
-      _fase = FaseTurno.seleccionarEquipos;
-      _equipoOscuro = [];
-      _equipoClaro = [];
-      _indiceTurno = 0;
-      _segundos = 360;
-      _timerActivo = false;
-      _jugadorActual = _usuariosHardcode.first;
-    });
+  void _toggleTimer() {
+    setState(() => _active = !_active);
+    _ensureTimer();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    return StreamBuilder<AppUser?>(
+      stream: _service.currentUserProfile(),
+      builder: (context, userSnap) {
+        final currentUser = userSnap.data;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('TURNOS'),
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(Icons.arrow_back),
-        ),
-      ),
-      body: StreamBuilder(
-        stream: _service.inGameMatch(),
-        builder: (context, snapshot) {
-          final inGame = snapshot.data;
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (inGame == null) {
-            return _buildBallonParado();
-          }
-          return SafeArea(
-            child: switch (_fase) {
-              FaseTurno.seleccionarDeporte => _buildSeleccionDeporte(),
-              FaseTurno.seleccionarEquipos => _buildSeleccionEquipos(),
-              FaseTurno.jugando => _buildJugando(),
-            },
-          );
-        },
-      ),
-      );
-  }
+        return StreamBuilder<MatchModel?>(
+          stream: _service.nextPendingMatch(),
+          builder: (context, matchSnap) {
+            final match = matchSnap.data;
+            if (matchSnap.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (match == null) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('TURNOS')),
+                body: _NoMatchState(isAdmin: currentUser?.rol == 'admin'),
+              );
+            }
 
-  Widget _buildBallonParado() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 130,
-            height: 130,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const RadialGradient(
-                colors: [Color(0x66C2A679), Color(0x00111111)],
-                radius: 0.95,
-              ),
-              border: Border.all(color: const Color(0x88C2A679)),
-            ),
-            alignment: Alignment.center,
-            child: const Text(
-              '⚽',
-              style: TextStyle(fontSize: 54),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'EL BALON ESTA PARADO',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(maxWidth: 700),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              color: const Color(0xFF1A1A1A),
-            ),
-            child: CustomPaint(
-              painter: _TacticalBoardPainter(),
-              child: const Padding(
-                padding: EdgeInsets.all(18),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'No hay partidos en juego ahora mismo.',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            return StreamBuilder<List<AppUser>>(
+              stream: _service.allUsers(),
+              builder: (context, usersSnap) {
+                final users = usersSnap.data ?? const <AppUser>[];
+                _syncFromMatch(match, users);
+
+                final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+                final canManage =
+                    currentUser?.rol == 'admin' ||
+                    match.adminPartido.isEmpty ||
+                    match.adminPartido == uid;
+
+                return Scaffold(
+                  backgroundColor: const Color(0xFFF5F5F7),
+                  appBar: AppBar(
+                    title: const Text(
+                      'TURNOS',
+                      style: TextStyle(fontWeight: FontWeight.w900),
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Si eres administrador, crea o inicia un partido. Si eres jugador, toca descansar hasta el siguiente pitido.',
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+                  ),
+                  body:
+                      match.estado == 'En Juego'
+                          ? _buildPlaying(match, canManage)
+                          : _buildConfigure(match, canManage),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
-  Widget _buildSeleccionDeporte() {
-    final theme = Theme.of(context);
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
+  Widget _buildConfigure(MatchModel match, bool canManage) {
+    return Stack(
       children: [
-        Text(
-          'Selecciona el formato del partido',
-          style: theme.textTheme.bodyMedium,
+        ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 106),
+          children: [
+            _MatchHeader(match: match),
+            const SizedBox(height: 16),
+            _GoalkeeperList(
+              title: match.equipo1,
+              players: _lineup1,
+              editable: canManage,
+              onChanged: (players) => setState(() => _lineup1 = players),
+            ),
+            const SizedBox(height: 14),
+            _GoalkeeperList(
+              title: match.equipo2,
+              players: _lineup2,
+              editable: canManage,
+              onChanged: (players) => setState(() => _lineup2 = players),
+            ),
+            const SizedBox(height: 24),
+            const _SectionTitle('PIZARRA TACTICA'),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _FormationSelector(
+                    label: 'E1',
+                    value: _formation1,
+                    enabled: canManage,
+                    onChanged: (value) => setState(() => _formation1 = value),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _FormationSelector(
+                    label: 'E2',
+                    value: _formation2,
+                    enabled: canManage,
+                    onChanged: (value) => setState(() => _formation2 = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _TacticalPitch(
+              team1: _lineup1,
+              team2: _lineup2,
+              formation1: _formation1,
+              formation2: _formation2,
+              editable: canManage,
+              onSwapTeam1:
+                  (a, b) =>
+                      setState(() => _lineup1 = _swapPlayers(_lineup1, a, b)),
+              onSwapTeam2:
+                  (a, b) =>
+                      setState(() => _lineup2 = _swapPlayers(_lineup2, a, b)),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
-        ...Deporte.values.map(_sportButton),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: SafeArea(
+            minimum: const EdgeInsets.all(16),
+            child:
+                canManage
+                    ? FilledButton(
+                      onPressed: _starting ? null : () => _startMatch(match),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _danger,
+                        minimumSize: const Size(double.infinity, 60),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child:
+                          _starting
+                              ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                              : const Text('COMENZAR PARTIDO'),
+                    )
+                    : Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.black12),
+                      ),
+                      child: const Text(
+                        'Esperando a que el admin inicie el partido.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildSectionTitle(Deporte deporte) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+  Widget _buildPlaying(MatchModel match, bool canManage) {
+    final goalkeeper1 = _goalkeeperForTurn(_lineup1, _turnIndex);
+    final goalkeeper2 = _goalkeeperForTurn(_lineup2, _turnIndex);
+    final next1 = _goalkeeperForTurn(_lineup1, _turnIndex + 1);
+    final next2 = _goalkeeperForTurn(_lineup2, _turnIndex + 1);
 
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _service.liveEvents(match.id),
+      builder: (context, eventsSnap) {
+        final counts = _liveCounts(eventsSnap.data ?? const []);
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: [
+            _InfoBar(seconds: _seconds),
+            const SizedBox(height: 14),
+            _LiveScoreCard(match: match),
+            const SizedBox(height: 16),
+            _TimerCard(
+              seconds: _seconds,
+              active: _active,
+              canManage: canManage,
+              onTap:
+                  canManage
+                      ? _toggleTimer
+                      : () => _showMessage(
+                        'Solo el administrador puede pausar el reloj.',
+                      ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _KeeperCard(
+                    title: 'PORTERO ${match.equipo1}',
+                    current: goalkeeper1?.nombre,
+                    next: next1?.nombre,
+                    dark: true,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _KeeperCard(
+                    title: 'PORTERO ${match.equipo2}',
+                    current: goalkeeper2?.nombre,
+                    next: next2?.nombre,
+                    dark: false,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            _LivePerformanceCard(
+              team1Name: match.equipo1,
+              team2Name: match.equipo2,
+              team1: _lineup1,
+              team2: _lineup2,
+              goals: counts.goals,
+              assists: counts.assists,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _savingGoal ? null : () => _showGoalDialog(match),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFE91E63),
+                minimumSize: const Size(double.infinity, 66),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                ),
+              ),
+              icon: const Icon(Icons.sports_soccer, size: 30),
+              label: const Text('REGISTRAR GOL'),
+            ),
+            if (_seconds == 0) ...[
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: canManage ? () => _nextTurn(match) : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor:
+                      _changeCountdown > 0 ? Colors.black54 : _danger,
+                  minimumSize: const Size(double.infinity, 54),
+                ),
+                child: Text(
+                  _changeCountdown > 0
+                      ? '$_changeCountdown s - SALTAR ESPERA'
+                      : 'INICIAR SIGUIENTE TURNO',
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  _LiveCounts _liveCounts(List<Map<String, dynamic>> events) {
+    final goals = <String, int>{};
+    final assists = <String, int>{};
+    for (final event in events) {
+      if (event['tipo'] != 'GOL' && event['type'] != 'goal') {
+        continue;
+      }
+      final scorer =
+          (event['idGoleador'] as String?) ?? (event['scorerId'] as String?);
+      final assist =
+          (event['idAsistente'] as String?) ?? (event['assistId'] as String?);
+      if (scorer != null && scorer.isNotEmpty) {
+        goals[scorer] = (goals[scorer] ?? 0) + 1;
+      }
+      if (assist != null && assist.isNotEmpty) {
+        assists[assist] = (assists[assist] ?? 0) + 1;
+      }
+    }
+    return _LiveCounts(goals: goals, assists: assists);
+  }
+
+  LineupPlayer? _goalkeeperForTurn(List<LineupPlayer> players, int turnIndex) {
+    final keepers =
+        players.where((p) => p.ordenPortero > 0).toList()
+          ..sort((a, b) => a.ordenPortero.compareTo(b.ordenPortero));
+    final source = keepers.isEmpty ? players : keepers;
+    if (source.isEmpty) {
+      return null;
+    }
+    return source[turnIndex % source.length];
+  }
+
+  List<LineupPlayer> _swapPlayers(
+    List<LineupPlayer> players,
+    String first,
+    String second,
+  ) {
+    final i = players.indexWhere((p) => p.id == first);
+    final j = players.indexWhere((p) => p.id == second);
+    if (i == -1 || j == -1) {
+      return players;
+    }
+    final copy = [...players];
+    final temp = copy[i];
+    copy[i] = copy[j];
+    copy[j] = temp;
+    return copy;
+  }
+
+  Future<void> _showGoalDialog(MatchModel match) async {
+    final result = await showDialog<_GoalDraft>(
+      context: context,
+      builder:
+          (context) => _GoalDialog(
+            team1Name: match.equipo1,
+            team2Name: match.equipo2,
+            team1: _lineup1,
+            team2: _lineup2,
+          ),
+    );
+    if (result == null) {
+      return;
+    }
+
+    final player =
+        result.team == 1
+            ? _lineup1.firstWhere((p) => p.id == result.scorerId)
+            : _lineup2.firstWhere((p) => p.id == result.scorerId);
+    final assist =
+        result.assistId.isEmpty
+            ? null
+            : (result.team == 1 ? _lineup1 : _lineup2).firstWhere(
+              (p) => p.id == result.assistId,
+            );
+    final minute =
+        (_turnIndex * (_turnDuration ~/ 60)) +
+        ((_turnDuration - _seconds) ~/ 60) +
+        1;
+
+    setState(() => _savingGoal = true);
+    try {
+      await _service.addLiveGoal(
+        matchId: match.id,
+        scorerId: player.id,
+        scorerName: player.nombre,
+        scorerTeam: result.team,
+        minute: minute,
+        assistId: assist?.id,
+        assistName: assist?.nombre,
+      );
+    } catch (e) {
+      _showMessage('Error al guardar gol: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _savingGoal = false);
+      }
+    }
+  }
+
+  void _showMessage(String text) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+}
+
+class _MatchHeader extends StatelessWidget {
+  const _MatchHeader({required this.match});
+
+  final MatchModel match;
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
+      color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             Expanded(
               child: Text(
-                'Turnos ${deporte.deporteNombre}${deporte.numeroNombre}',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                '${match.equipo1} vs ${match.equipo2}',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 19,
+                ),
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: scheme.secondary.withValues(alpha: 0.2),
+                color: _TimerTurnosScreenState._gold.withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                '${deporte.requeridasPorEquipo}x${deporte.requeridasPorEquipo}',
-                style: TextStyle(
-                  color: scheme.tertiary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
+                match.estado.toUpperCase(),
+                style: const TextStyle(
+                  color: _TimerTurnosScreenState._gold,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ),
@@ -346,541 +589,1151 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
       ),
     );
   }
+}
 
-  Widget _sportButton(Deporte deporte) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final colorFondo = switch (deporte) {
-      Deporte.futsal => scheme.secondary,
-      Deporte.fut7 => scheme.primary,
-      Deporte.fut11 => scheme.tertiary,
-    };
+class _GoalkeeperList extends StatelessWidget {
+  const _GoalkeeperList({
+    required this.title,
+    required this.players,
+    required this.editable,
+    required this.onChanged,
+  });
 
-    final imageAsset = switch (deporte) {
-      Deporte.fut11 => 'assets/fut_11.png',
-      Deporte.fut7 => 'assets/fut_7.png',
-      Deporte.futsal => 'assets/fut_sala.png',
-    };
+  final String title;
+  final List<LineupPlayer> players;
+  final bool editable;
+  final ValueChanged<List<LineupPlayer>> onChanged;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () => _seleccionarDeporte(deporte),
-        child: Card(
-          margin: EdgeInsets.zero,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          child: SizedBox(
-            height: 110,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(
-                  imageAsset,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => ColoredBox(
-                    color: colorFondo.withValues(alpha: 0.85),
-                  ),
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (players.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Sin convocados',
+                  style: TextStyle(color: Colors.grey),
                 ),
-                ColoredBox(
-                  color: Colors.black.withValues(alpha: 0.32),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              )
+            else
+              ...players.map((player) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
-                          '${deporte.deporteNombre}${deporte.numeroNombre}',
+                          player.nombre,
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 30,
-                            fontWeight: FontWeight.w900,
+                            color: Colors.black,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),
-                      Icon(Icons.chevron_right, color: scheme.surface, size: 28),
+                      for (var i = 1; i <= 5; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 5),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(999),
+                            onTap:
+                                editable
+                                    ? () {
+                                      final next =
+                                          players
+                                              .map(
+                                                (p) =>
+                                                    p.id == player.id
+                                                        ? p.copyWith(
+                                                          ordenPortero:
+                                                              p.ordenPortero ==
+                                                                      i
+                                                                  ? 0
+                                                                  : i,
+                                                        )
+                                                        : p,
+                                              )
+                                              .toList();
+                                      onChanged(next);
+                                    }
+                                    : null,
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color:
+                                    player.ordenPortero == i
+                                        ? _TimerTurnosScreenState._gold
+                                        : Colors.grey.withValues(alpha: 0.16),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color:
+                                      player.ordenPortero == i
+                                          ? Colors.black
+                                          : Colors.transparent,
+                                ),
+                              ),
+                              child: Text(
+                                '$i',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSeleccionEquipos() {
-    final deporte = _deporte!;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final disponibles = _usuariosDisponibles;
-    final equiposCompletos = _equipoOscuro.length == deporte.requeridasPorEquipo &&
-        _equipoClaro.length == deporte.requeridasPorEquipo;
-
-    if (_jugadorActual == null && disponibles.isNotEmpty) {
-      _jugadorActual = disponibles.first;
-    }
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSectionTitle(deporte),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            if (equiposCompletos) ...[
-              Expanded(
-                child: SizedBox(
-                  height: 52,
-                  child: FilledButton.icon(
-                    onPressed: _iniciarJuego,
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('INICIAR'),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SizedBox(
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: _colorError),
-                    ),
-                    onPressed: _reiniciar,
-                    icon: const Icon(Icons.restart_alt, color: _colorError),
-                    label: const Text(
-                      'REINICIAR',
-                      style: TextStyle(color: _colorError),
-                    ),
-                  ),
-                ),
-              ),
-            ] else ...[
-              Expanded(
-                child: _cajaSeleccion(
-                  titulo: 'CLARO',
-                  nombre: _jugadorActual?.nombre ?? '---',
-                  colorFondo: scheme.surface,
-                  colorTexto: scheme.tertiary,
-                  onTap: () {
-                    final actual = _jugadorActual;
-                    if (actual == null) {
-                      return;
-                    }
-                    setState(() {
-                      if (_equipoClaro.length < deporte.requeridasPorEquipo) {
-                        _equipoClaro = [..._equipoClaro, actual];
-                      }
-                      _jugadorActual = _nextJugadorActual(actual, _usuariosDisponibles);
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _cajaSeleccion(
-                  titulo: 'OSCURO',
-                  nombre: _jugadorActual?.nombre ?? '---',
-                  colorFondo: _colorEquipoOscuro,
-                  colorTexto: Colors.white,
-                  onTap: () {
-                    final actual = _jugadorActual;
-                    if (actual == null) {
-                      return;
-                    }
-                    setState(() {
-                      if (_equipoOscuro.length < deporte.requeridasPorEquipo) {
-                        _equipoOscuro = [..._equipoOscuro, actual];
-                      }
-                      _jugadorActual = _nextJugadorActual(actual, _usuariosDisponibles);
-                    });
-                  },
-                ),
-              ),
-            ],
-          ],
-        ),
-        if (disponibles.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Text(
-            'Jugadores disponibles',
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: disponibles.map((usuario) {
-                final isSelected = _jugadorActual?.id == usuario.id;
-
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    selectedColor: scheme.primary.withValues(alpha: 0.18),
-                    side: BorderSide(color: isSelected ? scheme.primary : Colors.transparent),
-                    label: Text(usuario.nombre),
-                    selected: isSelected,
-                    onSelected: (_) => setState(() => _jugadorActual = usuario),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-        const SizedBox(height: 16),
-        _contenedorEquipo(
-          titulo: 'OSCURO',
-          colorCabecera: _colorEquipoOscuro,
-          colorTextoCabecera: Colors.white,
-          jugadores: _equipoOscuro,
-          capacidad: deporte.requeridasPorEquipo,
-          onQuitar: (usuario) => setState(() => _equipoOscuro = _equipoOscuro.where((u) => u.id != usuario.id).toList()),
-        ),
-        const SizedBox(height: 12),
-        _contenedorEquipo(
-          titulo: 'CLARO',
-          colorCabecera: scheme.primary.withValues(alpha: 0.15),
-          colorTextoCabecera: scheme.tertiary,
-          jugadores: _equipoClaro,
-          capacidad: deporte.requeridasPorEquipo,
-          onQuitar: (usuario) => setState(() => _equipoClaro = _equipoClaro.where((u) => u.id != usuario.id).toList()),
-        ),
-      ],
-    );
-  }
-
-  Widget _cajaSeleccion({
-    required String titulo,
-    required String nombre,
-    required Color colorFondo,
-    required Color colorTexto,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      color: colorFondo,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          height: 110,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: TextStyle(
-                    color: colorTexto.withValues(alpha: 0.8),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  nombre,
-                  maxLines: 2,
-                  style: TextStyle(
-                    color: colorTexto,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    height: 1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _contenedorEquipo({
-    required String titulo,
-    required Color colorCabecera,
-    required Color colorTextoCabecera,
-    required List<Usuario> jugadores,
-    required int capacidad,
-    required void Function(Usuario) onQuitar,
-  }) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-            decoration: BoxDecoration(
-              color: colorCabecera,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    titulo,
-                    style: TextStyle(
-                      color: colorTextoCabecera,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${jugadores.length}/$capacidad',
-                  style: TextStyle(
-                    color: colorTextoCabecera.withValues(alpha: 0.9),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: List.generate(capacidad, (index) {
-                final jugador = jugadores.length > index ? jugadores[index] : null;
-
-                return _celdaJugador(
-                  jugador: jugador,
-                  index: index + 1,
-                  colorFondo: colorCabecera,
-                  onTap: () {
-                    if (jugador != null) {
-                      onQuitar(jugador);
-                    }
-                  },
-                  placeholderColor: theme.colorScheme.surfaceContainerHighest,
                 );
               }),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _celdaJugador({
-    required Usuario? jugador,
-    required int index,
-    required Color colorFondo,
-    required Color placeholderColor,
-    required VoidCallback onTap,
-  }) {
-    final tieneJugador = jugador != null;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: tieneJugador ? onTap : null,
-      child: Container(
-        height: 62,
-        width: 86,
-        decoration: BoxDecoration(
-          color: tieneJugador ? colorFondo : placeholderColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        alignment: Alignment.center,
-        child: tieneJugador
-            ? Text(
-                jugador.nombre,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: colorFondo.computeLuminance() < 0.4 ? Colors.white : Colors.black,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              )
-            : Text(
-                '$index',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.28),
-                ),
-              ),
-            ),
-          );
-  }
-
-  Widget _buildJugando() {
-    final deporte = _deporte!;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final jugadorOscuro = _equipoOscuro.length > _indiceTurno ? _equipoOscuro[_indiceTurno] : null;
-    final jugadorClaro = _equipoClaro.length > _indiceTurno ? _equipoClaro[_indiceTurno] : null;
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSectionTitle(deporte),
-        const SizedBox(height: 12),
-        Card(
-          color: scheme.tertiary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Column(
-              children: [
-                Text(
-                  'Tiempo restante',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _formatearTiempo(_segundos),
-                  style: const TextStyle(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _jugadorTurnoCard(
-                etiqueta: 'CLARO',
-                nombre: jugadorClaro?.nombre ?? '-',
-                colorFondo: scheme.surface,
-                colorTexto: scheme.tertiary,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _jugadorTurnoCard(
-                etiqueta: 'OSCURO',
-                nombre: jugadorOscuro?.nombre ?? '-',
-                colorFondo: _colorEquipoOscuro,
-                colorTexto: Colors.white,
-              ),
-            ),
           ],
         ),
-        const SizedBox(height: 16),
-        if (_segundos == 0) ...[
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: scheme.primary),
-              onPressed: _siguienteTurno,
-              icon: const Icon(Icons.skip_next),
-              label: const Text('SIGUIENTE TURNO'),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: _colorError),
-            ),
-            onPressed: _reiniciar,
-            icon: const Icon(Icons.restart_alt, color: _colorError),
-            label: const Text(
-              'REINICIAR',
-              style: TextStyle(color: _colorError),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _jugadorTurnoCard({
-    required String etiqueta,
-    required String nombre,
-    required Color colorFondo,
-    required Color colorTexto,
-  }) {
-    return Card(
-      margin: EdgeInsets.zero,
-      color: colorFondo,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: SizedBox(
-        height: 108,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                etiqueta,
-                style: TextStyle(
-                  color: colorTexto.withValues(alpha: 0.8),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                nombre,
-                maxLines: 2,
-                style: TextStyle(
-                  color: colorTexto,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
-  }
-
-  String _formatearTiempo(int segundos) {
-    final minutos = segundos ~/ 60;
-    final segs = segundos % 60;
-    return '${minutos.toString().padLeft(2, '0')}:${segs.toString().padLeft(2, '0')}';
   }
 }
 
-class _TacticalBoardPainter extends CustomPainter {
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: Colors.black87,
+        fontSize: 20,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+  }
+}
+
+class _FormationSelector extends StatelessWidget {
+  const _FormationSelector({
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String label;
+  final FutsalFormation value;
+  final bool enabled;
+  final ValueChanged<FutsalFormation> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<FutsalFormation>(
+      initialValue: value,
+      items:
+          FutsalFormation.values
+              .map(
+                (f) => DropdownMenuItem(
+                  value: f,
+                  child: Text('$label: ${f.label}'),
+                ),
+              )
+              .toList(),
+      onChanged: enabled ? (v) => onChanged(v ?? value) : null,
+      decoration: const InputDecoration(
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      ),
+    );
+  }
+}
+
+class _TacticalPitch extends StatelessWidget {
+  const _TacticalPitch({
+    required this.team1,
+    required this.team2,
+    required this.formation1,
+    required this.formation2,
+    required this.editable,
+    required this.onSwapTeam1,
+    required this.onSwapTeam2,
+  });
+
+  final List<LineupPlayer> team1;
+  final List<LineupPlayer> team2;
+  final FutsalFormation formation1;
+  final FutsalFormation formation2;
+  final bool editable;
+  final void Function(String first, String second) onSwapTeam1;
+  final void Function(String first, String second) onSwapTeam2;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 600,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D47A1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.58),
+          width: 2,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            CustomPaint(
+              size: const Size(double.infinity, double.infinity),
+              painter: _PitchPainter(),
+            ),
+            ..._teamMarkers(team2, formation2, top: true, onSwap: onSwapTeam2),
+            ..._teamMarkers(team1, formation1, top: false, onSwap: onSwapTeam1),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _teamMarkers(
+    List<LineupPlayer> team,
+    FutsalFormation formation, {
+    required bool top,
+    required void Function(String first, String second) onSwap,
+  }) {
+    if (team.isEmpty) {
+      return const [];
+    }
+    final keeper = team.firstWhere(
+      (p) => p.ordenPortero == 1,
+      orElse: () => team.first,
+    );
+    final fieldPlayers = team.where((p) => p.id != keeper.id).toList();
+    final positions = <Alignment, LineupPlayer>{
+      top ? const Alignment(0, -0.92) : const Alignment(0, 0.92): keeper,
+    };
+
+    void add(LineupPlayer? player, Alignment alignment) {
+      if (player != null) {
+        positions[alignment] = player;
+      }
+    }
+
+    switch (formation) {
+      case FutsalFormation.rombo:
+        add(
+          fieldPlayers.elementAtOrNull(0),
+          top ? const Alignment(0, -0.66) : const Alignment(0, 0.66),
+        );
+        add(
+          fieldPlayers.elementAtOrNull(1),
+          top ? const Alignment(-0.56, -0.42) : const Alignment(-0.56, 0.42),
+        );
+        add(
+          fieldPlayers.elementAtOrNull(2),
+          top ? const Alignment(0.56, -0.42) : const Alignment(0.56, 0.42),
+        );
+        add(
+          fieldPlayers.elementAtOrNull(3),
+          top ? const Alignment(0, -0.16) : const Alignment(0, 0.16),
+        );
+      case FutsalFormation.cuadrado:
+        add(
+          fieldPlayers.elementAtOrNull(0),
+          top ? const Alignment(-0.48, -0.58) : const Alignment(-0.48, 0.58),
+        );
+        add(
+          fieldPlayers.elementAtOrNull(1),
+          top ? const Alignment(0.48, -0.58) : const Alignment(0.48, 0.58),
+        );
+        add(
+          fieldPlayers.elementAtOrNull(2),
+          top ? const Alignment(-0.48, -0.25) : const Alignment(-0.48, 0.25),
+        );
+        add(
+          fieldPlayers.elementAtOrNull(3),
+          top ? const Alignment(0.48, -0.25) : const Alignment(0.48, 0.25),
+        );
+      case FutsalFormation.yGriega:
+        add(
+          fieldPlayers.elementAtOrNull(0),
+          top ? const Alignment(0, -0.62) : const Alignment(0, 0.62),
+        );
+        add(
+          fieldPlayers.elementAtOrNull(1),
+          top ? const Alignment(0, -0.37) : const Alignment(0, 0.37),
+        );
+        add(
+          fieldPlayers.elementAtOrNull(2),
+          top ? const Alignment(-0.50, -0.16) : const Alignment(-0.50, 0.16),
+        );
+        add(
+          fieldPlayers.elementAtOrNull(3),
+          top ? const Alignment(0.50, -0.16) : const Alignment(0.50, 0.16),
+        );
+    }
+
+    return positions.entries.map((entry) {
+      return Align(
+        alignment: entry.key,
+        child: _PlayerMarker(
+          player: entry.value,
+          allPlayers: team,
+          editable: editable,
+          onSwap: onSwap,
+        ),
+      );
+    }).toList();
+  }
+}
+
+class _PlayerMarker extends StatelessWidget {
+  const _PlayerMarker({
+    required this.player,
+    required this.allPlayers,
+    required this.editable,
+    required this.onSwap,
+  });
+
+  final LineupPlayer player;
+  final List<LineupPlayer> allPlayers;
+  final bool editable;
+  final void Function(String first, String second) onSwap;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      enabled: editable,
+      tooltip: 'Cambiar posicion',
+      onSelected: (otherId) => onSwap(player.id, otherId),
+      itemBuilder:
+          (context) =>
+              allPlayers
+                  .where((p) => p.id != player.id)
+                  .map((p) => PopupMenuItem(value: p.id, child: Text(p.nombre)))
+                  .toList(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color:
+                  player.ordenPortero == 1
+                      ? _TimerTurnosScreenState._gold
+                      : Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: Text(
+              player.nombre.isEmpty ? '?' : player.nombre[0].toUpperCase(),
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            constraints: const BoxConstraints(maxWidth: 76),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.70),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              player.nombre,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PitchPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+    final line =
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.58)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2;
+    final center = Offset(size.width / 2, size.height / 2);
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(14)),
-      p,
+    canvas.drawLine(Offset(0, center.dy), Offset(size.width, center.dy), line);
+    canvas.drawCircle(center, 46, line);
+    canvas.drawArc(
+      Rect.fromCenter(center: Offset(center.dx, -10), width: 160, height: 120),
+      0,
+      3.14159,
+      false,
+      line,
     );
-    canvas.drawLine(
-      Offset(size.width / 2, 0),
-      Offset(size.width / 2, size.height),
-      p,
+    canvas.drawArc(
+      Rect.fromCenter(
+        center: Offset(center.dx, size.height + 10),
+        width: 160,
+        height: 120,
+      ),
+      3.14159,
+      3.14159,
+      false,
+      line,
     );
-    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 22, p);
+
+    final goal = Paint()..color = Colors.white;
+    canvas.drawRect(
+      Rect.fromCenter(center: Offset(center.dx, 4), width: 110, height: 8),
+      goal,
+    );
+    canvas.drawRect(
+      Rect.fromCenter(
+        center: Offset(center.dx, size.height - 4),
+        width: 110,
+        height: 8,
+      ),
+      goal,
+    );
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _InfoBar extends StatelessWidget {
+  const _InfoBar({required this.seconds});
+
+  final int seconds;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = TimeOfDay.now();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: _TimerTurnosScreenState._dark,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _InfoCell(label: 'TIEMPO', value: _format(seconds), gold: true),
+          _InfoCell(label: 'HORA', value: now.format(context), gold: false),
+        ],
+      ),
+    );
+  }
+
+  String _format(int seconds) {
+    final mins = seconds ~/ 60;
+    final secs = seconds % 60;
+    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+}
+
+class _InfoCell extends StatelessWidget {
+  const _InfoCell({
+    required this.label,
+    required this.value,
+    required this.gold,
+  });
+
+  final String label;
+  final String value;
+  final bool gold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment:
+          gold ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: gold ? _TimerTurnosScreenState._gold : Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LiveScoreCard extends StatelessWidget {
+  const _LiveScoreCard({required this.match});
+
+  final MatchModel match;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: _TimerTurnosScreenState._dark,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: Row(
+          children: [
+            Expanded(child: _ScoreTeamName(match.equipo1)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: _TimerTurnosScreenState._gold,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${match.goles1} - ${match.goles2}',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Expanded(child: _ScoreTeamName(match.equipo2)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScoreTeamName extends StatelessWidget {
+  const _ScoreTeamName(this.name);
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      name.toUpperCase(),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w800,
+        fontSize: 16,
+      ),
+    );
+  }
+}
+
+class _TimerCard extends StatelessWidget {
+  const _TimerCard({
+    required this.seconds,
+    required this.active,
+    required this.canManage,
+    required this.onTap,
+  });
+
+  final int seconds;
+  final bool active;
+  final bool canManage;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final mins = seconds ~/ 60;
+    final secs = seconds % 60;
+    return InkWell(
+      borderRadius: BorderRadius.circular(30),
+      onTap: onTap,
+      child: Container(
+        height: 160,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color:
+              active
+                  ? _TimerTurnosScreenState._softGreen
+                  : Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}',
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 74,
+                fontWeight: FontWeight.w900,
+                height: 0.92,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  active ? Icons.pause : Icons.play_arrow,
+                  color: Colors.black,
+                  size: 20,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  canManage
+                      ? (active ? 'TOCA PARA PAUSAR' : 'TOCA PARA INICIAR')
+                      : (active ? 'EN JUEGO' : 'TIEMPO PAUSADO'),
+                  style: TextStyle(
+                    color: Colors.black.withValues(alpha: 0.75),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KeeperCard extends StatelessWidget {
+  const _KeeperCard({
+    required this.title,
+    required this.current,
+    required this.next,
+    required this.dark,
+  });
+
+  final String title;
+  final String? current;
+  final String? next;
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = dark ? _TimerTurnosScreenState._dark : Colors.white;
+    final fg = dark ? Colors.white : Colors.black87;
+    return Card(
+      color: bg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: dark ? BorderSide.none : BorderSide(color: Colors.grey.shade300),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: fg.withValues(alpha: 0.58),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              current ?? '-',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: fg,
+                fontSize: 21,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'SIGUIENTE:',
+              style: TextStyle(
+                color: fg.withValues(alpha: 0.42),
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            Text(
+              next ?? '-',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: fg.withValues(alpha: 0.70),
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LivePerformanceCard extends StatelessWidget {
+  const _LivePerformanceCard({
+    required this.team1Name,
+    required this.team2Name,
+    required this.team1,
+    required this.team2,
+    required this.goals,
+    required this.assists,
+  });
+
+  final String team1Name;
+  final String team2Name;
+  final List<LineupPlayer> team1;
+  final List<LineupPlayer> team2;
+  final Map<String, int> goals;
+  final Map<String, int> assists;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'RENDIMIENTO EN VIVO',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _TeamStats(
+                    title: team1Name,
+                    players: team1,
+                    goals: goals,
+                    assists: assists,
+                    highlight: _TimerTurnosScreenState._gold,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _TeamStats(
+                    title: team2Name,
+                    players: team2,
+                    goals: goals,
+                    assists: assists,
+                    highlight: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamStats extends StatelessWidget {
+  const _TeamStats({
+    required this.title,
+    required this.players,
+    required this.goals,
+    required this.assists,
+    required this.highlight,
+  });
+
+  final String title;
+  final List<LineupPlayer> players;
+  final Map<String, int> goals;
+  final Map<String, int> assists;
+  final Color highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title.toUpperCase(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: highlight,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        Divider(color: Colors.grey.shade300),
+        ...players.map((player) {
+          final g = goals[player.id] ?? 0;
+          final a = assists[player.id] ?? 0;
+          final hasStats = g > 0 || a > 0;
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    player.nombre,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$g G  $a A',
+                  style: TextStyle(
+                    color: hasStats ? Colors.black : Colors.grey.shade400,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _GoalDialog extends StatefulWidget {
+  const _GoalDialog({
+    required this.team1Name,
+    required this.team2Name,
+    required this.team1,
+    required this.team2,
+  });
+
+  final String team1Name;
+  final String team2Name;
+  final List<LineupPlayer> team1;
+  final List<LineupPlayer> team2;
+
+  @override
+  State<_GoalDialog> createState() => _GoalDialogState();
+}
+
+class _GoalDialogState extends State<_GoalDialog> {
+  int _team = 1;
+  String _scorerId = '';
+  String _assistId = '';
+
+  List<LineupPlayer> get _players => _team == 1 ? widget.team1 : widget.team2;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 740),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              const Text(
+                'GOLAZO',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _teamButton(1, widget.team1Name)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _teamButton(2, widget.team2Name)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView(
+                  children: [
+                    const Text(
+                      'QUIEN HA MARCADO?',
+                      style: TextStyle(
+                        color: _TimerTurnosScreenState._danger,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _PlayerGrid(
+                      players: _players,
+                      selectedId: _scorerId,
+                      onSelect:
+                          (id) => setState(() {
+                            _scorerId = id;
+                            if (_assistId == id) {
+                              _assistId = '';
+                            }
+                          }),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'ASISTENCIA (OPCIONAL)',
+                      style: TextStyle(
+                        color: _TimerTurnosScreenState._gold,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _PlayerGrid(
+                      players:
+                          _players.where((p) => p.id != _scorerId).toList(),
+                      selectedId: _assistId,
+                      onSelect:
+                          (id) => setState(
+                            () => _assistId = _assistId == id ? '' : id,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('CANCELAR'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed:
+                          _scorerId.isEmpty
+                              ? null
+                              : () => Navigator.of(context).pop(
+                                _GoalDraft(
+                                  team: _team,
+                                  scorerId: _scorerId,
+                                  assistId: _assistId,
+                                ),
+                              ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFE91E63),
+                      ),
+                      child: const Text('GUARDAR'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _teamButton(int team, String name) {
+    final selected = _team == team;
+    return FilledButton(
+      onPressed:
+          () => setState(() {
+            _team = team;
+            _scorerId = '';
+            _assistId = '';
+          }),
+      style: FilledButton.styleFrom(
+        backgroundColor:
+            selected ? _TimerTurnosScreenState._dark : Colors.grey.shade300,
+        foregroundColor: selected ? Colors.white : Colors.black87,
+      ),
+      child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+    );
+  }
+}
+
+class _PlayerGrid extends StatelessWidget {
+  const _PlayerGrid({
+    required this.players,
+    required this.selectedId,
+    required this.onSelect,
+  });
+
+  final List<LineupPlayer> players;
+  final String selectedId;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children:
+          players.map((player) {
+            final selected = player.id == selectedId;
+            return SizedBox(
+              width: 92,
+              height: 112,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => onSelect(player.id),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color:
+                        selected ? _TimerTurnosScreenState._dark : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color:
+                          selected
+                              ? _TimerTurnosScreenState._gold
+                              : Colors.grey.shade300,
+                      width: selected ? 3 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        backgroundColor:
+                            selected ? Colors.white : Colors.grey.shade300,
+                        child: Text(
+                          player.nombre.isEmpty
+                              ? '?'
+                              : player.nombre[0].toUpperCase(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        player.nombre,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: selected ? Colors.white : Colors.black,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+    );
+  }
+}
+
+class _GoalDraft {
+  const _GoalDraft({
+    required this.team,
+    required this.scorerId,
+    required this.assistId,
+  });
+
+  final int team;
+  final String scorerId;
+  final String assistId;
+}
+
+class _LiveCounts {
+  const _LiveCounts({required this.goals, required this.assists});
+
+  final Map<String, int> goals;
+  final Map<String, int> assists;
+}
+
+class _NoMatchState extends StatelessWidget {
+  const _NoMatchState({required this.isAdmin});
+
+  final bool isAdmin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 132,
+            height: 132,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _TimerTurnosScreenState._gold.withValues(alpha: 0.55),
+              ),
+              gradient: RadialGradient(
+                colors: [
+                  _TimerTurnosScreenState._gold.withValues(alpha: 0.28),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+            child: const Icon(
+              Icons.sports_soccer,
+              color: _TimerTurnosScreenState._gold,
+              size: 64,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'EL BALON ESTA PARADO',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            isAdmin
+                ? 'Crea un partido desde el vestuario para preparar alineaciones y comenzar.'
+                : 'No hay ningun encuentro pendiente ni en juego ahora mismo.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

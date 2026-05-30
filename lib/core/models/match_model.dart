@@ -1,3 +1,4 @@
+import 'lineup_player.dart';
 import 'player_stat.dart';
 
 class MatchModel {
@@ -19,6 +20,13 @@ class MatchModel {
     required this.timestampCierre,
     required this.estadisticasJugadores,
     required this.hanVotado,
+    required this.alineacionDetallada1,
+    required this.alineacionDetallada2,
+    required this.formacion1,
+    required this.formacion2,
+    required this.indiceTurno,
+    required this.tiempoSegundos,
+    required this.timestampInicio,
   });
 
   final String id;
@@ -38,12 +46,30 @@ class MatchModel {
   final int timestampCierre;
   final List<PlayerStat> estadisticasJugadores;
   final List<String> hanVotado;
+  final List<LineupPlayer> alineacionDetallada1;
+  final List<LineupPlayer> alineacionDetallada2;
+  final String formacion1;
+  final String formacion2;
+  final int indiceTurno;
+  final int tiempoSegundos;
+  final int timestampInicio;
 
   factory MatchModel.fromMap(String id, Map<String, dynamic> data) {
-    final rawStats = (data['estadisticasJugadores'] as List<dynamic>? ?? [])
-        .whereType<Map<String, dynamic>>()
-        .map(PlayerStat.fromMap)
-        .toList();
+    final rawStats =
+        (data['estadisticasJugadores'] as List<dynamic>? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map(PlayerStat.fromMap)
+            .toList();
+    final rawLineup1 =
+        (data['alineacionDetallada1'] as List<dynamic>? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map(LineupPlayer.fromMap)
+            .toList();
+    final rawLineup2 =
+        (data['alineacionDetallada2'] as List<dynamic>? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map(LineupPlayer.fromMap)
+            .toList();
 
     return MatchModel(
       id: id,
@@ -57,18 +83,28 @@ class MatchModel {
       estado: (data['estado'] as String?) ?? 'Pendiente',
       goles1: (data['goles1'] as num?)?.toInt() ?? 0,
       goles2: (data['goles2'] as num?)?.toInt() ?? 0,
-      convocatoria1: (data['convocatoria1'] as List<dynamic>? ?? [])
-          .whereType<String>()
-          .toList(),
-      convocatoria2: (data['convocatoria2'] as List<dynamic>? ?? [])
-          .whereType<String>()
-          .toList(),
+      convocatoria1:
+          (data['convocatoria1'] as List<dynamic>? ?? [])
+              .whereType<String>()
+              .toList(),
+      convocatoria2:
+          (data['convocatoria2'] as List<dynamic>? ?? [])
+              .whereType<String>()
+              .toList(),
       adminPartido: (data['adminPartido'] as String?) ?? '',
       timestampCierre: (data['timestampCierre'] as num?)?.toInt() ?? 0,
       estadisticasJugadores: rawStats,
-      hanVotado: (data['hanVotado'] as List<dynamic>? ?? [])
-          .whereType<String>()
-          .toList(),
+      hanVotado:
+          (data['hanVotado'] as List<dynamic>? ?? [])
+              .whereType<String>()
+              .toList(),
+      alineacionDetallada1: rawLineup1,
+      alineacionDetallada2: rawLineup2,
+      formacion1: (data['formacion1'] as String?) ?? '1-2-1 (Rombo)',
+      formacion2: (data['formacion2'] as String?) ?? '1-2-1 (Rombo)',
+      indiceTurno: (data['indiceTurno'] as num?)?.toInt() ?? 0,
+      tiempoSegundos: (data['tiempoSegundos'] as num?)?.toInt() ?? 360,
+      timestampInicio: (data['timestampInicio'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -88,13 +124,22 @@ class MatchModel {
       'convocatoria2': convocatoria2,
       'adminPartido': adminPartido,
       'timestampCierre': timestampCierre,
-      'estadisticasJugadores': estadisticasJugadores.map((e) => e.toMap()).toList(),
+      'estadisticasJugadores':
+          estadisticasJugadores.map((e) => e.toMap()).toList(),
       'hanVotado': hanVotado,
+      'alineacionDetallada1':
+          alineacionDetallada1.map((e) => e.toMap()).toList(),
+      'alineacionDetallada2':
+          alineacionDetallada2.map((e) => e.toMap()).toList(),
+      'formacion1': formacion1,
+      'formacion2': formacion2,
+      'indiceTurno': indiceTurno,
+      'tiempoSegundos': tiempoSegundos,
+      'timestampInicio': timestampInicio,
     };
   }
 
   factory MatchModel.fromFirestore(Map<String, dynamic> data) {
     return MatchModel.fromMap(data['id'] as String, data);
   }
-
 }

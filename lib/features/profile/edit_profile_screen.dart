@@ -70,12 +70,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         fotoUrl: _fotoCtrl.text.trim(),
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -99,9 +103,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           if (user != null && !_inited) {
             _inited = true;
             _nombreCtrl.text = user.nombre;
-            _correoCtrl.text = user.correo.isNotEmpty
-                ? user.correo
-                : (FirebaseAuth.instance.currentUser?.email ?? '');
+            _correoCtrl.text =
+                user.correo.isNotEmpty
+                    ? user.correo
+                    : (FirebaseAuth.instance.currentUser?.email ?? '');
             _fechaCtrl.text = user.fechaNacimiento;
             _fotoCtrl.text = user.fotoUrl;
             _posicion = user.posicion;
@@ -139,11 +144,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextField(
                 controller: _fechaCtrl,
                 style: const TextStyle(color: Colors.black),
-                decoration: _buildInputDecoration('Fecha nacimiento (DD/MM/AAAA)'),
+                decoration: _buildInputDecoration(
+                  'Fecha nacimiento (DD/MM/AAAA)',
+                ),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _posicion,
+                initialValue: _posicion,
                 style: const TextStyle(color: Colors.black),
                 dropdownColor: Colors.white,
                 iconEnabledColor: Colors.deepPurpleAccent,
@@ -153,7 +160,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   DropdownMenuItem(value: 'Ala', child: Text('Ala')),
                   DropdownMenuItem(value: 'Pívot', child: Text('Pivot')),
                   DropdownMenuItem(value: 'Comodín', child: Text('Comodin')),
-                  DropdownMenuItem(value: 'Sin definir', child: Text('Sin definir')),
+                  DropdownMenuItem(
+                    value: 'Sin definir',
+                    child: Text('Sin definir'),
+                  ),
                 ],
                 onChanged: (v) {
                   if (v != null) {
@@ -165,7 +175,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 26),
               FilledButton(
                 onPressed: _loading ? null : _save,
-                child: _loading ? const CircularProgressIndicator() : const Text('Guardar cambios'),
+                child:
+                    _loading
+                        ? const CircularProgressIndicator()
+                        : const Text('Guardar cambios'),
               ),
             ],
           );

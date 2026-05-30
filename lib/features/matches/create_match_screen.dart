@@ -45,8 +45,12 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
   }
 
   Future<void> _create() async {
-    if (_equipo1.text.trim().isEmpty || _equipo2.text.trim().isEmpty || _fecha.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rellena al menos equipos y fecha.')));
+    if (_equipo1.text.trim().isEmpty ||
+        _equipo2.text.trim().isEmpty ||
+        _fecha.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rellena al menos equipos y fecha.')),
+      );
       return;
     }
     setState(() => _loading = true);
@@ -61,12 +65,16 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
         ubicacion: _ubicacion.text.trim(),
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Partido creado')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Partido creado')));
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -82,37 +90,65 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          TextField(controller: _equipo1, decoration: const InputDecoration(labelText: 'Equipo local')),
+          TextField(
+            controller: _equipo1,
+            decoration: const InputDecoration(labelText: 'Equipo local'),
+          ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: _color1,
-            items: _colors.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+            initialValue: _color1,
+            items:
+                _colors
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
             onChanged: (v) => setState(() => _color1 = v ?? _color1),
             decoration: const InputDecoration(labelText: 'Color local'),
           ),
           const SizedBox(height: 16),
-          TextField(controller: _equipo2, decoration: const InputDecoration(labelText: 'Equipo visitante')),
+          TextField(
+            controller: _equipo2,
+            decoration: const InputDecoration(labelText: 'Equipo visitante'),
+          ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: _color2,
-            items: _colors.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+            initialValue: _color2,
+            items:
+                _colors
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
             onChanged: (v) => setState(() => _color2 = v ?? _color2),
             decoration: const InputDecoration(labelText: 'Color visitante'),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: TextField(controller: _fecha, decoration: const InputDecoration(labelText: 'Fecha (DD/MM)'))),
+              Expanded(
+                child: TextField(
+                  controller: _fecha,
+                  decoration: const InputDecoration(labelText: 'Fecha (DD/MM)'),
+                ),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: TextField(controller: _hora, decoration: const InputDecoration(labelText: 'Hora (HH:MM)'))),
+              Expanded(
+                child: TextField(
+                  controller: _hora,
+                  decoration: const InputDecoration(labelText: 'Hora (HH:MM)'),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
-          TextField(controller: _ubicacion, decoration: const InputDecoration(labelText: 'Ubicacion')),
+          TextField(
+            controller: _ubicacion,
+            decoration: const InputDecoration(labelText: 'Ubicacion'),
+          ),
           const SizedBox(height: 30),
           FilledButton(
             onPressed: _loading ? null : _create,
-            child: _loading ? const CircularProgressIndicator() : const Text('Publicar partido'),
+            child:
+                _loading
+                    ? const CircularProgressIndicator()
+                    : const Text('Publicar partido'),
           ),
         ],
       ),

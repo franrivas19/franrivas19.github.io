@@ -2,11 +2,12 @@ DateTime? parseMatchDateTime(String fecha, String hora) {
   try {
     final now = DateTime.now();
     final normalizedDate = fecha.trim().replaceAll('-', '/');
-    final dateParts = normalizedDate
-        .split('/')
-        .map((p) => p.trim())
-        .where((p) => p.isNotEmpty)
-        .toList();
+    final dateParts =
+        normalizedDate
+            .split('/')
+            .map((p) => p.trim())
+            .where((p) => p.isNotEmpty)
+            .toList();
 
     if (dateParts.length < 2 || dateParts.length > 3) {
       return null;
@@ -27,17 +28,22 @@ DateTime? parseMatchDateTime(String fecha, String hora) {
         year = int.parse(dateParts[2]);
       } else {
         year = now.year;
+        if (now.month == 12 && month == 1) {
+          year++;
+        }
       }
     }
 
     final normalizedTime = hora.trim();
     final timeParts = normalizedTime.split(':');
-    final hour = timeParts.isNotEmpty && timeParts.first.isNotEmpty
-        ? int.parse(timeParts[0])
-        : 0;
-    final minute = timeParts.length > 1 && timeParts[1].isNotEmpty
-        ? int.parse(timeParts[1])
-        : 0;
+    final hour =
+        timeParts.isNotEmpty && timeParts.first.isNotEmpty
+            ? int.parse(timeParts[0])
+            : 0;
+    final minute =
+        timeParts.length > 1 && timeParts[1].isNotEmpty
+            ? int.parse(timeParts[1])
+            : 0;
 
     return DateTime(year, month, day, hour, minute);
   } catch (_) {
@@ -76,7 +82,8 @@ int calculateAge(String ddmmyyyy) {
     final now = DateTime.now();
     var age = now.year - birth.year;
     final hadBirthday =
-        now.month > birth.month || (now.month == birth.month && now.day >= birth.day);
+        now.month > birth.month ||
+        (now.month == birth.month && now.day >= birth.day);
     if (!hadBirthday) {
       age--;
     }

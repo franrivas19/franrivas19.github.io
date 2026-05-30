@@ -9,7 +9,8 @@ class RecoverPasswordScreen extends StatefulWidget {
   State<RecoverPasswordScreen> createState() => _RecoverPasswordScreenState();
 }
 
-class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> with SingleTickerProviderStateMixin {
+class _RecoverPasswordScreenState extends State<RecoverPasswordScreen>
+    with SingleTickerProviderStateMixin {
   final _emailCtrl = TextEditingController();
   bool _loading = false;
   String? _message;
@@ -30,7 +31,10 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> with Sing
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
 
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
 
@@ -59,7 +63,9 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> with Sing
 
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-      setState(() => _message = 'Revisa tu correo para restablecer la contrasena.');
+      setState(
+        () => _message = 'Revisa tu correo para restablecer la contrasena.',
+      );
     } on FirebaseAuthException catch (e) {
       setState(() => _error = e.message ?? 'No se pudo enviar el correo.');
     } catch (_) {
@@ -100,7 +106,13 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> with Sing
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 24, offset: const Offset(0, 8))],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,57 +138,91 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> with Sing
                             TextField(
                               controller: _emailCtrl,
                               keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(labelText: 'Correo'),
+                              decoration: const InputDecoration(
+                                labelText: 'Correo',
+                              ),
                             ),
                             const SizedBox(height: 20),
                             AnimatedOpacity(
                               opacity: _message != null ? 1.0 : 0.0,
                               duration: const Duration(milliseconds: 300),
-                              child: _message != null
-                                  ? Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF10B981).withOpacity(0.1),
-                                        border: Border.all(color: const Color(0xFF10B981), width: 1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        _message!,
-                                        style: const TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.w500, fontSize: 13),
-                                      ),
-                                    )
-                                  : const SizedBox.shrink(),
+                              child:
+                                  _message != null
+                                      ? Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xFF10B981,
+                                          ).withValues(alpha: 0.1),
+                                          border: Border.all(
+                                            color: const Color(0xFF10B981),
+                                            width: 1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _message!,
+                                          style: const TextStyle(
+                                            color: Color(0xFF047857),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      )
+                                      : const SizedBox.shrink(),
                             ),
                             AnimatedOpacity(
                               opacity: _error != null ? 1.0 : 0.0,
                               duration: const Duration(milliseconds: 300),
-                              child: _error != null
-                                  ? Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFEF4444).withOpacity(0.1),
-                                        border: Border.all(color: const Color(0xFFEF4444), width: 1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        _error!,
-                                        style: const TextStyle(color: Color(0xFFC90000), fontWeight: FontWeight.w500, fontSize: 13),
-                                      ),
-                                    )
-                                  : const SizedBox.shrink(),
+                              child:
+                                  _error != null
+                                      ? Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xFFEF4444,
+                                          ).withValues(alpha: 0.1),
+                                          border: Border.all(
+                                            color: const Color(0xFFEF4444),
+                                            width: 1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _error!,
+                                          style: const TextStyle(
+                                            color: Color(0xFFC90000),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      )
+                                      : const SizedBox.shrink(),
                             ),
-                            if (_message != null || _error != null) const SizedBox(height: 16),
+                            if (_message != null || _error != null)
+                              const SizedBox(height: 16),
                             SizedBox(
                               width: double.infinity,
                               child: FilledButton(
                                 onPressed: _loading ? null : _sendReset,
-                                child: _loading
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-                                      )
-                                    : const Text('Enviar enlace'),
+                                child:
+                                    _loading
+                                        ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
+                                          ),
+                                        )
+                                        : const Text('Enviar enlace'),
                               ),
                             ),
                           ],

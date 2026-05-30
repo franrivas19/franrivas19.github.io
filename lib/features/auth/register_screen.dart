@@ -11,7 +11,8 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProviderStateMixin {
+class _RegisterScreenState extends State<RegisterScreen>
+    with SingleTickerProviderStateMixin {
   final _nameCtrl = TextEditingController();
   final _lastNameCtrl = TextEditingController();
   final _birthDateCtrl = TextEditingController();
@@ -37,7 +38,10 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
 
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
 
@@ -141,14 +145,23 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: ListView(
                   shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 32,
+                  ),
                   children: [
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 24, offset: const Offset(0, 8))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
                       child: Column(
                         children: [
@@ -156,7 +169,10 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [AppTheme.primaryBlue, AppTheme.lightBlue],
+                                colors: [
+                                  AppTheme.primaryBlue,
+                                  AppTheme.lightBlue,
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -175,13 +191,17 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                           TextField(
                             controller: _nameCtrl,
                             textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(labelText: 'Nombre'),
+                            decoration: const InputDecoration(
+                              labelText: 'Nombre',
+                            ),
                           ),
                           const SizedBox(height: 14),
                           TextField(
                             controller: _lastNameCtrl,
                             textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(labelText: 'Apellidos'),
+                            decoration: const InputDecoration(
+                              labelText: 'Apellidos',
+                            ),
                           ),
                           const SizedBox(height: 14),
                           TextField(
@@ -195,7 +215,9 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                           TextField(
                             controller: _emailCtrl,
                             keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(labelText: 'Correo'),
+                            decoration: const InputDecoration(
+                              labelText: 'Correo',
+                            ),
                           ),
                           const SizedBox(height: 14),
                           TextField(
@@ -205,10 +227,14 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                               labelText: 'Contraseña',
                               suffixIcon: IconButton(
                                 onPressed: () {
-                                  setState(() => _passwordVisible = !_passwordVisible);
+                                  setState(
+                                    () => _passwordVisible = !_passwordVisible,
+                                  );
                                 },
                                 icon: Icon(
-                                  _passwordVisible ? Icons.visibility_off : Icons.visibility,
+                                  _passwordVisible
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
                                   color: AppTheme.accentGrey,
                                 ),
                               ),
@@ -218,33 +244,50 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                           AnimatedOpacity(
                             opacity: _error != null ? 1.0 : 0.0,
                             duration: const Duration(milliseconds: 300),
-                            child: _error != null
-                                ? Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEF4444).withOpacity(0.1),
-                                      border: Border.all(color: const Color(0xFFEF4444), width: 1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      _error!,
-                                      style: const TextStyle(color: Color(0xFFC90000), fontWeight: FontWeight.w500, fontSize: 13),
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
+                            child:
+                                _error != null
+                                    ? Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                          0xFFEF4444,
+                                        ).withValues(alpha: 0.1),
+                                        border: Border.all(
+                                          color: const Color(0xFFEF4444),
+                                          width: 1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        _error!,
+                                        style: const TextStyle(
+                                          color: Color(0xFFC90000),
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    )
+                                    : const SizedBox.shrink(),
                           ),
                           if (_error != null) const SizedBox(height: 16),
                           SizedBox(
                             width: double.infinity,
                             child: FilledButton(
                               onPressed: _loading ? null : _register,
-                              child: _loading
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-                                    )
-                                  : const Text('Registrarme'),
+                              child:
+                                  _loading
+                                      ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
+                                        ),
+                                      )
+                                      : const Text('Registrarme'),
                             ),
                           ),
                           const SizedBox(height: 12),

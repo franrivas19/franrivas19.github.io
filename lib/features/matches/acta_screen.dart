@@ -32,11 +32,12 @@ class _ActaScreenState extends State<ActaScreen> {
 
   Future<void> _loadInitialData() async {
     try {
-      final matchQuery = await _db
-          .collection('partidos')
-          .where('estado', whereIn: ['Pendiente', 'En Juego'])
-          .limit(1)
-          .get();
+      final matchQuery =
+          await _db
+              .collection('partidos')
+              .where('estado', whereIn: ['Pendiente', 'En Juego'])
+              .limit(1)
+              .get();
 
       if (matchQuery.docs.isEmpty) {
         setState(() => _loading = false);
@@ -52,14 +53,20 @@ class _ActaScreenState extends State<ActaScreen> {
 
       for (final ev in eventosSnap.docs) {
         final data = ev.data();
-        final idGoleador = data['idGoleador'] as String?;
-        final idAsistente = data['idAsistente'] as String?;
+        if (data['tipo'] != 'GOL' && data['type'] != 'goal') {
+          continue;
+        }
+        final idGoleador =
+            (data['idGoleador'] as String?) ?? (data['scorerId'] as String?);
+        final idAsistente =
+            (data['idAsistente'] as String?) ?? (data['assistId'] as String?);
 
         if (idGoleador != null) {
           recuentoGoles[idGoleador] = (recuentoGoles[idGoleador] ?? 0) + 1;
         }
         if (idAsistente != null) {
-          recuentoAsistencias[idAsistente] = (recuentoAsistencias[idAsistente] ?? 0) + 1;
+          recuentoAsistencias[idAsistente] =
+              (recuentoAsistencias[idAsistente] ?? 0) + 1;
         }
       }
 
@@ -67,23 +74,22 @@ class _ActaScreenState extends State<ActaScreen> {
       final conv1 = match.convocatoria1;
       final conv2 = match.convocatoria2;
 
-      final listaStats = usersSnap.docs
-          .mapNotNull((d) {
-            final uid = d.id;
-            if (conv1.contains(uid) || conv2.contains(uid)) {
-              return PlayerStat(
-                id: uid,
-                nombre: (d.data()['nombre'] as String?) ?? 'Jugador',
-                goles: recuentoGoles[uid] ?? 0,
-                asistencias: recuentoAsistencias[uid] ?? 0,
-                haJugado: true,
-                equipo: conv1.contains(uid) ? 1 : 2,
-              );
-            }
-            return null;
-          })
-          .toList()
-        ..sort((a, b) => a.equipo.compareTo(b.equipo));
+      final listaStats =
+          usersSnap.docs.mapNotNull((d) {
+              final uid = d.id;
+              if (conv1.contains(uid) || conv2.contains(uid)) {
+                return PlayerStat(
+                  id: uid,
+                  nombre: (d.data()['nombre'] as String?) ?? 'Jugador',
+                  goles: recuentoGoles[uid] ?? 0,
+                  asistencias: recuentoAsistencias[uid] ?? 0,
+                  haJugado: true,
+                  equipo: conv1.contains(uid) ? 1 : 2,
+                );
+              }
+              return null;
+            }).toList()
+            ..sort((a, b) => a.equipo.compareTo(b.equipo));
 
       setState(() {
         _match = match;
@@ -109,13 +115,17 @@ class _ActaScreenState extends State<ActaScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('¡Acta cerrada y estadísticas actualizadas!')),
+          const SnackBar(
+            content: Text('¡Acta cerrada y estadísticas actualizadas!'),
+          ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -144,7 +154,10 @@ class _ActaScreenState extends State<ActaScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F1E7),
       appBar: AppBar(
-        title: const Text('Cerrar Acta Oficial', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Cerrar Acta Oficial',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: const Color(0xFFF5F1E7),
         elevation: 0,
         leading: IconButton(
@@ -169,7 +182,9 @@ class _ActaScreenState extends State<ActaScreen> {
               ),
             ),
           ),
-          ..._stats.asMap().entries.map((entry) => _buildPlayerCard(entry.key, entry.value)),
+          ..._stats.asMap().entries.map(
+            (entry) => _buildPlayerCard(entry.key, entry.value),
+          ),
           const SizedBox(height: 20),
         ],
       ),
@@ -187,7 +202,10 @@ class _ActaScreenState extends State<ActaScreen> {
             children: const [
               Text('⚠️', style: TextStyle(fontSize: 48)),
               SizedBox(height: 16),
-              Text('¡Alineaciones vacías!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+              Text(
+                '¡Alineaciones vacías!',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              ),
               SizedBox(height: 8),
               Text(
                 'Debes configurar la convocatoria pulsando en la tarjeta del próximo partido antes de rellenar el acta.',
@@ -212,7 +230,11 @@ class _ActaScreenState extends State<ActaScreen> {
           children: [
             const Text(
               'RESULTADO FINAL',
-              style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
             Row(
@@ -224,7 +246,14 @@ class _ActaScreenState extends State<ActaScreen> {
                   (v) => setState(() => _goles1 = v),
                   const Color(0xFF1E88E5),
                 ),
-                const Text('VS', style: TextStyle(color: Color(0xFFC2A679), fontWeight: FontWeight.bold, fontSize: 24)),
+                const Text(
+                  'VS',
+                  style: TextStyle(
+                    color: Color(0xFFC2A679),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                  ),
+                ),
                 _teamControl(
                   _match!.equipo2,
                   _goles2,
@@ -239,16 +268,37 @@ class _ActaScreenState extends State<ActaScreen> {
     );
   }
 
-  Widget _teamControl(String name, int score, Function(int) onUpdate, Color color) {
+  Widget _teamControl(
+    String name,
+    int score,
+    Function(int) onUpdate,
+    Color color,
+  ) {
     final abbr = name.substring(0, name.length.clamp(0, 3)).toUpperCase();
     return Column(
       children: [
-        Text(abbr, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: color)),
+        Text(
+          abbr,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: color,
+          ),
+        ),
         Row(
           children: [
-            IconButton(onPressed: score > 0 ? () => onUpdate(score - 1) : null, icon: const Icon(Icons.remove)),
-            Text('$score', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
-            IconButton(onPressed: () => onUpdate(score + 1), icon: const Icon(Icons.add)),
+            IconButton(
+              onPressed: score > 0 ? () => onUpdate(score - 1) : null,
+              icon: const Icon(Icons.remove),
+            ),
+            Text(
+              '$score',
+              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              onPressed: () => onUpdate(score + 1),
+              icon: const Icon(Icons.add),
+            ),
           ],
         ),
       ],
@@ -256,15 +306,17 @@ class _ActaScreenState extends State<ActaScreen> {
   }
 
   Widget _buildPlayerCard(int index, PlayerStat player) {
-    final teamColor = player.equipo == 1 ? const Color(0xFF1E88E5) : const Color(0xFFE53935);
+    final teamColor =
+        player.equipo == 1 ? const Color(0xFF1E88E5) : const Color(0xFFE53935);
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: player.haJugado
-            ? BorderSide(color: teamColor.withValues(alpha: 0.5), width: 2)
-            : BorderSide.none,
+        side:
+            player.haJugado
+                ? BorderSide(color: teamColor.withValues(alpha: 0.5), width: 2)
+                : BorderSide.none,
       ),
       color: player.haJugado ? Colors.white : const Color(0xFFE0E0E0),
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -278,7 +330,12 @@ class _ActaScreenState extends State<ActaScreen> {
                   value: player.haJugado,
                   activeColor: teamColor,
                   onChanged: (val) {
-                    setState(() => _stats[index] = player.copyWith(haJugado: val ?? true));
+                    setState(
+                      () =>
+                          _stats[index] = player.copyWith(
+                            haJugado: val ?? true,
+                          ),
+                    );
                   },
                 ),
                 Text(
@@ -292,7 +349,11 @@ class _ActaScreenState extends State<ActaScreen> {
                 const Spacer(),
                 Text(
                   player.equipo == 1 ? 'LOC' : 'VIS',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: teamColor),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: teamColor,
+                  ),
                 ),
               ],
             ),
@@ -305,13 +366,17 @@ class _ActaScreenState extends State<ActaScreen> {
                     _statStepper(
                       '⚽ Goles:',
                       player.goles,
-                      (v) => setState(() => _stats[index] = player.copyWith(goles: v)),
+                      (v) => setState(
+                        () => _stats[index] = player.copyWith(goles: v),
+                      ),
                       teamColor,
                     ),
                     _statStepper(
                       '👟 Asist:',
                       player.asistencias,
-                      (v) => setState(() => _stats[index] = player.copyWith(asistencias: v)),
+                      (v) => setState(
+                        () => _stats[index] = player.copyWith(asistencias: v),
+                      ),
                       Colors.black,
                     ),
                   ],
@@ -323,14 +388,23 @@ class _ActaScreenState extends State<ActaScreen> {
     );
   }
 
-  Widget _statStepper(String label, int value, Function(int) onUpdate, Color color) {
+  Widget _statStepper(
+    String label,
+    int value,
+    Function(int) onUpdate,
+    Color color,
+  ) {
     return Row(
       children: [
         SizedBox(
           width: 55,
           child: Text(
             label,
-            style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         IconButton(
@@ -339,7 +413,14 @@ class _ActaScreenState extends State<ActaScreen> {
           constraints: const BoxConstraints(),
           padding: const EdgeInsets.all(4),
         ),
-        Text('$value', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: color)),
+        Text(
+          '$value',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: color,
+          ),
+        ),
         IconButton(
           onPressed: () => onUpdate(value + 1),
           icon: const Icon(Icons.add, size: 16),
@@ -358,23 +439,29 @@ class _ActaScreenState extends State<ActaScreen> {
         style: FilledButton.styleFrom(
           backgroundColor: const Color(0xFF1A1A1A),
           minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
-        child: _saving
-            ? const SizedBox(
-                height: 24,
-                width: 24,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-              )
-            : const Text(
-                'GUARDAR ACTA',
-                style: TextStyle(
-                  color: Color(0xFFC2A679),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  letterSpacing: 2,
+        child:
+            _saving
+                ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                : const Text(
+                  'GUARDAR ACTA',
+                  style: TextStyle(
+                    color: Color(0xFFC2A679),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    letterSpacing: 2,
+                  ),
                 ),
-              ),
       ),
     );
   }

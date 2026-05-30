@@ -11,10 +11,12 @@ class ProximoPartidoCard extends StatefulWidget {
     super.key,
     required this.match,
     this.onTap,
+    this.onEdit,
   });
 
   final MatchModel match;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
 
   @override
   State<ProximoPartidoCard> createState() => _ProximoPartidoCardState();
@@ -73,7 +75,10 @@ class _ProximoPartidoCardState extends State<ProximoPartidoCard> {
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.dorado.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
@@ -91,23 +96,39 @@ class _ProximoPartidoCardState extends State<ProximoPartidoCard> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _TeamBlock(name: widget.match.equipo1, color: widget.match.color1)),
+                  Expanded(
+                    child: _TeamBlock(
+                      name: widget.match.equipo1,
+                      color: widget.match.color1,
+                    ),
+                  ),
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: const BoxDecoration(
                       color: AppColors.dorado,
                       shape: BoxShape.circle,
                     ),
-                    child: const Text('VS', style: TextStyle(fontWeight: FontWeight.w900)),
+                    child: const Text(
+                      'VS',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
                   ),
-                  Expanded(child: _TeamBlock(name: widget.match.equipo2, color: widget.match.color2)),
+                  Expanded(
+                    child: _TeamBlock(
+                      name: widget.match.equipo2,
+                      color: widget.match.color2,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 18),
               if (started)
                 const Text(
                   'EL PARTIDO ESTA EN JUEGO',
-                  style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.w900,
+                  ),
                 )
               else
                 _Countdown(remaining: remaining ?? Duration.zero),
@@ -115,12 +136,42 @@ class _ProximoPartidoCardState extends State<ProximoPartidoCard> {
               const Divider(color: Colors.white24),
               const SizedBox(height: 10),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('📍 ${widget.match.ubicacion}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                  Text('📅 ${widget.match.fecha} - ⏰ ${widget.match.hora}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  Expanded(
+                    child: Text(
+                      '📍 ${widget.match.ubicacion}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '📅 ${widget.match.fecha} - ⏰ ${widget.match.hora}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
                 ],
               ),
+              if (widget.onEdit != null) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: widget.onEdit,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.dorado,
+                      side: BorderSide(
+                        color: AppColors.dorado.withValues(alpha: 0.65),
+                      ),
+                    ),
+                    icon: const Icon(Icons.groups_rounded, size: 18),
+                    label: const Text('CONFIGURAR CONVOCATORIA'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -130,11 +181,7 @@ class _ProximoPartidoCardState extends State<ProximoPartidoCard> {
 }
 
 class UltimoPartidoCard extends StatelessWidget {
-  const UltimoPartidoCard({
-    super.key,
-    required this.match,
-    this.onTap,
-  });
+  const UltimoPartidoCard({super.key, required this.match, this.onTap});
 
   final MatchModel match;
   final VoidCallback? onTap;
@@ -280,7 +327,12 @@ class UltimoPartidoCard extends StatelessWidget {
 }
 
 String _teamAbbreviation(String name) {
-  final parts = name.trim().split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+  final parts =
+      name
+          .trim()
+          .split(RegExp(r'\s+'))
+          .where((part) => part.isNotEmpty)
+          .toList();
   if (parts.isEmpty) {
     return '---';
   }
@@ -319,7 +371,10 @@ class _TeamBlock extends StatelessWidget {
           name,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -348,8 +403,22 @@ class _Countdown extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(v.toString().padLeft(2, '0'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
-            Text(label, style: const TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.w700)),
+            Text(
+              v.toString().padLeft(2, '0'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       );

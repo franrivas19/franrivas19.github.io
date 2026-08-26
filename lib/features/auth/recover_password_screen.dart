@@ -218,7 +218,7 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen>
                                             strokeWidth: 2,
                                             valueColor:
                                                 AlwaysStoppedAnimation<Color>(
-                                                  Colors.white,
+                                                  AppTheme.vipBlack,
                                                 ),
                                           ),
                                         )

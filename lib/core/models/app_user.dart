@@ -13,6 +13,8 @@ class AppUser {
     required this.totalEstrellas,
     required this.votosRecibidos,
     required this.rol,
+    required this.puntosDefensivos,
+    this.listaTitulos = const [],
   });
 
   final String id;
@@ -28,6 +30,8 @@ class AppUser {
   final double totalEstrellas;
   final int votosRecibidos;
   final String rol;
+  final int puntosDefensivos;
+  final List<String> listaTitulos;
 
   factory AppUser.fromMap(String id, Map<String, dynamic> data) {
     return AppUser(
@@ -44,6 +48,11 @@ class AppUser {
       totalEstrellas: (data['totalEstrellas'] as num?)?.toDouble() ?? 0,
       votosRecibidos: (data['votosRecibidos'] as num?)?.toInt() ?? 0,
       rol: (data['rol'] as String?) ?? 'jugador',
+      puntosDefensivos: (data['puntosDefensivos'] as num?)?.toInt() ?? 0,
+      listaTitulos:
+          (data['titulos_2026'] as List<dynamic>? ?? [])
+              .whereType<String>()
+              .toList(),
     );
   }
 
@@ -61,6 +70,7 @@ class AppUser {
       'totalEstrellas': totalEstrellas,
       'votosRecibidos': votosRecibidos,
       'rol': rol,
+      'puntosDefensivos': puntosDefensivos,
     };
   }
 }

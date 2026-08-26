@@ -47,3 +47,4 @@ app.*.map.json
 # Secret files
 *.env
 lib/secret.dart
+code-android/

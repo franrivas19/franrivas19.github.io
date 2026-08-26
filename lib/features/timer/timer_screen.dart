@@ -8,6 +8,7 @@ import '../../core/models/app_user.dart';
 import '../../core/models/lineup_player.dart';
 import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
+import '../../core/theme/app_theme.dart';
 import '../common/app_bottom_nav.dart';
 
 enum FutsalFormation {
@@ -45,6 +46,8 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
 
   Timer? _timer;
   String? _configuredMatchId;
+  int? _syncedTurnStart;
+  int? _syncedTurnIndex;
   List<LineupPlayer> _lineup1 = [];
   List<LineupPlayer> _lineup2 = [];
   FutsalFormation _formation1 = FutsalFormation.rombo;
@@ -63,23 +66,41 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
   }
 
   void _syncFromMatch(MatchModel match, List<AppUser> users) {
-    if (_configuredMatchId == match.id) {
+    final isNewMatch = _configuredMatchId != match.id;
+    final remoteTurnChanged =
+        !isNewMatch &&
+        (match.timestampInicio != _syncedTurnStart ||
+            match.indiceTurno != _syncedTurnIndex);
+    if (!isNewMatch && !remoteTurnChanged) {
       return;
     }
 
     final byId = {for (final user in users) user.id: user};
+    final guestsById = {for (final g in match.invitados) g.id: g};
+    LineupPlayer? lineupFor(String id) {
+      if (byId.containsKey(id)) {
+        return _lineupFromUser(byId[id]!);
+      }
+      if (guestsById.containsKey(id)) {
+        return _lineupFromGuest(guestsById[id]!);
+      }
+      return null;
+    }
+
     final fallback1 =
         match.convocatoria1
-            .where((id) => byId.containsKey(id))
-            .map((id) => _lineupFromUser(byId[id]!))
+            .map(lineupFor)
+            .whereType<LineupPlayer>()
             .toList();
     final fallback2 =
         match.convocatoria2
-            .where((id) => byId.containsKey(id))
-            .map((id) => _lineupFromUser(byId[id]!))
+            .map(lineupFor)
+            .whereType<LineupPlayer>()
             .toList();
 
     _configuredMatchId = match.id;
+    _syncedTurnStart = match.timestampInicio;
+    _syncedTurnIndex = match.indiceTurno;
     _lineup1 =
         match.alineacionDetallada1.isNotEmpty
             ? match.alineacionDetallada1
@@ -102,6 +123,10 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
       nombre: user.nombre.split(' ').first,
       fotoUrl: user.fotoUrl,
     );
+  }
+
+  LineupPlayer _lineupFromGuest(GuestPlayer guest) {
+    return LineupPlayer(id: guest.id, nombre: guest.nombre);
   }
 
   void _ensureTimer() {
@@ -529,6 +554,8 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
         scorerName: player.nombre,
         scorerTeam: result.team,
         minute: minute,
+        indiceTurno: _turnIndex,
+        segundosTurno: _turnDuration - _seconds,
         assistId: assist?.id,
         assistName: assist?.nombre,
       );
@@ -1194,6 +1221,7 @@ class _TimerCard extends StatelessWidget {
             Text(
               '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}',
               style: const TextStyle(
+                fontFamily: AppTheme.oswald,
                 color: Colors.black,
                 fontSize: 74,
                 fontWeight: FontWeight.w900,

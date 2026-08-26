@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/lineup_player.dart';
 import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
+import '../../core/theme/app_theme.dart';
 
 class LiveScoreScreen extends StatefulWidget {
   const LiveScoreScreen({super.key, required this.matchId});
@@ -232,6 +233,7 @@ class _ScoreCard extends StatelessWidget {
                   child: Text(
                     '${match.goles1} - ${match.goles2}',
                     style: const TextStyle(
+                      fontFamily: AppTheme.oswald,
                       color: Colors.black,
                       fontSize: 36,
                       fontWeight: FontWeight.w900,
@@ -484,6 +486,7 @@ class _GoalOverlay extends StatelessWidget {
                 const Text(
                   'GOOOOL!',
                   style: TextStyle(
+                    fontFamily: AppTheme.oswald,
                     color: Color(0xFFC2A679),
                     fontSize: 64,
                     fontWeight: FontWeight.w900,

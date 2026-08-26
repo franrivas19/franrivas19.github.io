@@ -1,6 +1,22 @@
 import 'lineup_player.dart';
 import 'player_stat.dart';
 
+class GuestPlayer {
+  const GuestPlayer({required this.id, required this.nombre});
+
+  final String id;
+  final String nombre;
+
+  factory GuestPlayer.fromMap(Map<String, dynamic> data) {
+    return GuestPlayer(
+      id: (data['id'] as String?) ?? '',
+      nombre: (data['nombre'] as String?) ?? 'Invitado',
+    );
+  }
+
+  Map<String, dynamic> toMap() => {'id': id, 'nombre': nombre};
+}
+
 class MatchModel {
   MatchModel({
     required this.id,
@@ -27,6 +43,8 @@ class MatchModel {
     required this.indiceTurno,
     required this.tiempoSegundos,
     required this.timestampInicio,
+    required this.invitados,
+    required this.temporada,
   });
 
   final String id;
@@ -53,6 +71,8 @@ class MatchModel {
   final int indiceTurno;
   final int tiempoSegundos;
   final int timestampInicio;
+  final List<GuestPlayer> invitados;
+  final String temporada;
 
   factory MatchModel.fromMap(String id, Map<String, dynamic> data) {
     final rawStats =
@@ -105,6 +125,12 @@ class MatchModel {
       indiceTurno: (data['indiceTurno'] as num?)?.toInt() ?? 0,
       tiempoSegundos: (data['tiempoSegundos'] as num?)?.toInt() ?? 360,
       timestampInicio: (data['timestampInicio'] as num?)?.toInt() ?? 0,
+      invitados:
+          (data['invitados'] as List<dynamic>? ?? [])
+              .whereType<Map<String, dynamic>>()
+              .map(GuestPlayer.fromMap)
+              .toList(),
+      temporada: (data['temporada'] as String?) ?? '',
     );
   }
 
@@ -136,6 +162,8 @@ class MatchModel {
       'indiceTurno': indiceTurno,
       'tiempoSegundos': tiempoSegundos,
       'timestampInicio': timestampInicio,
+      'invitados': invitados.map((e) => e.toMap()).toList(),
+      'temporada': temporada,
     };
   }
 

@@ -19,6 +19,7 @@ import '../../features/profile/edit_profile_screen.dart';
 import '../../features/stats/detalle_estadistica_screen.dart';
 import '../../features/stats/goleadores_screen.dart';
 import '../../features/stats/mis_valoraciones_screen.dart';
+import '../../features/stats/resumen_mensual_screen.dart';
 import '../../features/timer/timer_screen.dart';
 
 class AppRouter {
@@ -70,6 +71,10 @@ class AppRouter {
       GoRoute(
         path: '/mis-valoraciones',
         builder: (context, state) => const MisValoracionesScreen(),
+      ),
+      GoRoute(
+        path: '/resumen-mensual',
+        builder: (context, state) => const ResumenMensualScreen(),
       ),
       GoRoute(
         path: '/crear-partido',

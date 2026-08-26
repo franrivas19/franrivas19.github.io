@@ -6,6 +6,9 @@ class PlayerStat {
     required this.asistencias,
     required this.equipo,
     required this.haJugado,
+    this.posicion = 'Sin definir',
+    this.puntosDefensivos = 0,
+    this.notaObjetiva = 0,
   });
 
   final String id;
@@ -14,6 +17,11 @@ class PlayerStat {
   final int asistencias;
   final int equipo;
   final bool haJugado;
+  final String posicion;
+  final int puntosDefensivos;
+  final double notaObjetiva;
+
+  bool get esInvitado => id.startsWith('invitado_');
 
   factory PlayerStat.fromMap(Map<String, dynamic> data) {
     return PlayerStat(
@@ -23,6 +31,9 @@ class PlayerStat {
       asistencias: (data['asistencias'] as num?)?.toInt() ?? 0,
       equipo: (data['equipo'] as num?)?.toInt() ?? 1,
       haJugado: (data['haJugado'] as bool?) ?? true,
+      posicion: (data['posicionFutsal'] as String?) ?? 'Sin definir',
+      puntosDefensivos: (data['puntosDefensivos'] as num?)?.toInt() ?? 0,
+      notaObjetiva: (data['notaObjetiva'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -34,6 +45,9 @@ class PlayerStat {
       'asistencias': asistencias,
       'equipo': equipo,
       'haJugado': haJugado,
+      'posicionFutsal': posicion,
+      'puntosDefensivos': puntosDefensivos,
+      'notaObjetiva': notaObjetiva,
     };
   }
 
@@ -42,6 +56,9 @@ class PlayerStat {
     int? asistencias,
     bool? haJugado,
     int? equipo,
+    String? posicion,
+    int? puntosDefensivos,
+    double? notaObjetiva,
   }) {
     return PlayerStat(
       id: id,
@@ -50,6 +67,9 @@ class PlayerStat {
       asistencias: asistencias ?? this.asistencias,
       haJugado: haJugado ?? this.haJugado,
       equipo: equipo ?? this.equipo,
+      posicion: posicion ?? this.posicion,
+      puntosDefensivos: puntosDefensivos ?? this.puntosDefensivos,
+      notaObjetiva: notaObjetiva ?? this.notaObjetiva,
     );
   }
 }

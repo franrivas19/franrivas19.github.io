@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/services/firestore_service.dart';
+import '../../core/theme/app_theme.dart';
 import '../common/avatar_jugador.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -49,7 +50,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.deepPurpleAccent, width: 2),
+        borderSide: const BorderSide(color: AppTheme.vipGold, width: 2),
       ),
     );
   }
@@ -153,7 +154,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 initialValue: _posicion,
                 style: const TextStyle(color: Colors.black),
                 dropdownColor: Colors.white,
-                iconEnabledColor: Colors.deepPurpleAccent,
+                iconEnabledColor: AppTheme.vipGold,
                 items: const [
                   DropdownMenuItem(value: 'Portero', child: Text('Portero')),
                   DropdownMenuItem(value: 'Cierre', child: Text('Cierre')),
@@ -177,7 +178,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 onPressed: _loading ? null : _save,
                 child:
                     _loading
-                        ? const CircularProgressIndicator()
+                        ? const CircularProgressIndicator(
+                          color: AppTheme.vipBlack,
+                        )
                         : const Text('Guardar cambios'),
               ),
             ],

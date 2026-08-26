@@ -22,7 +22,11 @@ service cloud.firestore {
 
     match /usuarios/{userId} {
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && (request.auth.uid == userId || isAdmin(request.auth.uid));
+      allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.rol == 'jugador';
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && request.resource.data.rol == resource.data.rol) ||
+        isAdmin(request.auth.uid)
+      );
       allow delete: if isAdmin(request.auth.uid);
     }
 

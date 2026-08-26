@@ -22,6 +22,42 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
 
   Map<String, int> assignments = {};
   String adminId = '';
+  List<GuestPlayer> _guests = [];
+
+  Future<void> _addGuest() async {
+    final nombreCtrl = TextEditingController();
+    final nombre = await showDialog<String>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Fichaje Exprés'),
+            content: TextField(
+              controller: nombreCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Nombre / Apodo'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed:
+                    () => Navigator.pop(context, nombreCtrl.text.trim()),
+                child: const Text('Añadir Jugador'),
+              ),
+            ],
+          ),
+    );
+    if (nombre == null || nombre.isEmpty) {
+      return;
+    }
+    final id = 'invitado_${DateTime.now().millisecondsSinceEpoch}';
+    setState(() {
+      _guests = [..._guests, GuestPlayer(id: id, nombre: nombre)];
+      assignments[id] = 0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,12 +84,18 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                     (user?.rol == 'admin') || uid == match.adminPartido;
 
                 if (_loadedMatchId != match.id) {
+                  _guests = match.invitados;
                   assignments = <String, int>{
                     for (final u in users)
                       u.id:
                           match.convocatoria1.contains(u.id)
                               ? 1
                               : (match.convocatoria2.contains(u.id) ? 2 : 0),
+                    for (final g in _guests)
+                      g.id:
+                          match.convocatoria1.contains(g.id)
+                              ? 1
+                              : (match.convocatoria2.contains(g.id) ? 2 : 0),
                   };
                   adminId = match.adminPartido;
                   _loadedMatchId = match.id;
@@ -63,6 +105,15 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                   }
                 }
 
+                final roster = [
+                  ...users.map((u) => (id: u.id, nombre: u.nombre)),
+                  ..._guests.map((g) => (id: g.id, nombre: g.nombre)),
+                ];
+
+                final count1 = assignments.values.where((v) => v == 1).length;
+                final count2 = assignments.values.where((v) => v == 2).length;
+                final teamsReady = count1 >= 5 && count2 >= 5;
+
                 return Scaffold(
                   appBar: AppBar(title: const Text('CONVOCATORIA')),
                   bottomNavigationBar:
@@ -70,15 +121,33 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                           ? null
                           : Padding(
                             padding: const EdgeInsets.all(16),
-                            child: FilledButton(
-                              onPressed:
-                                  _saving
-                                      ? null
-                                      : () => save(context, match, users),
-                              child:
-                                  _saving
-                                      ? const CircularProgressIndicator()
-                                      : const Text('CONFIRMAR ALINEACIONES'),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (!teamsReady)
+                                  const Padding(
+                                    padding: EdgeInsets.only(bottom: 8),
+                                    child: Text(
+                                      'Cada equipo necesita al menos 5 jugadores.',
+                                      style: TextStyle(
+                                        color: Color(0xFFD32F2F),
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                FilledButton(
+                                  onPressed:
+                                      _saving || !teamsReady
+                                          ? null
+                                          : () => save(context, match, users),
+                                  child:
+                                      _saving
+                                          ? const CircularProgressIndicator()
+                                          : const Text(
+                                            'CONFIRMAR ALINEACIONES',
+                                          ),
+                                ),
+                              ],
                             ),
                           ),
                   body: ListView(
@@ -148,8 +217,16 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                                 : 'Solo puedes mover tu ficha.'),
                         style: const TextStyle(color: Colors.grey),
                       ),
+                      if (!started && canManage) ...[
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: _addGuest,
+                          icon: const Icon(Icons.person_add_alt_1),
+                          label: const Text('Fichaje Exprés (invitado)'),
+                        ),
+                      ],
                       const SizedBox(height: 10),
-                      ...users.map((u) {
+                      ...roster.map((u) {
                         final status = assignments[u.id] ?? 0;
                         final teamName =
                             status == 1
@@ -234,6 +311,7 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                 .map((e) => e.key)
                 .toList(),
         adminPartido: adminId,
+        invitados: _guests,
       );
       if (!mounted) {
         return;

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/app_user.dart';
 import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
+import '../../core/theme/app_theme.dart';
 import '../common/avatar_jugador.dart';
 import '../common/match_cards.dart';
 
@@ -217,6 +218,22 @@ class _ResumenScreenState extends State<ResumenScreen> {
                                 ),
                               ),
                             ),
+                            _TarjetaPuntosDefensivosStyled(
+                              puntos: user?.puntosDefensivos ?? 0,
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'TU CARTA ULTIMATE TEAM',
+                              style: TextStyle(
+                                fontFamily: AppTheme.oswald,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (user != null)
+                              Center(child: _CartaFifaJugador(jugador: user)),
                           ],
                         ),
                   ),
@@ -358,6 +375,11 @@ class _ResumenScreenState extends State<ResumenScreen> {
                 title: const Text('Mis valoraciones'),
                 onTap: () => context.push('/mis-valoraciones'),
               ),
+              ListTile(
+                leading: const Icon(Icons.auto_stories),
+                title: const Text('Resumen del mes'),
+                onTap: () => context.push('/resumen-mensual'),
+              ),
               const Spacer(),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
@@ -427,6 +449,367 @@ class _BottomNavItem extends StatelessWidget {
   }
 }
 
+class _TarjetaPuntosDefensivosStyled extends StatelessWidget {
+  const _TarjetaPuntosDefensivosStyled({required this.puntos});
+
+  final int puntos;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      color: const Color(0xFFF5F1E7),
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A1A1A),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text('🛡️', style: TextStyle(fontSize: 28)),
+                ),
+                const SizedBox(width: 20),
+                const Text(
+                  'Empeño defensivo',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1A1A1A),
+                    fontSize: 18,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              '$puntos',
+              style: const TextStyle(
+                fontFamily: AppTheme.oswald,
+                color: Color(0xFFC2A679),
+                fontWeight: FontWeight.w900,
+                fontSize: 42,
+                letterSpacing: -2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FifaCardClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final w = size.width;
+    final h = size.height;
+    return Path()
+      ..moveTo(w * 0.12, 0)
+      ..lineTo(w * 0.88, 0)
+      ..lineTo(w, h * 0.10)
+      ..lineTo(w, h * 0.85)
+      ..lineTo(w * 0.5, h)
+      ..lineTo(0, h * 0.85)
+      ..lineTo(0, h * 0.10)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class _CartaFifaJugador extends StatelessWidget {
+  const _CartaFifaJugador({required this.jugador});
+
+  final AppUser jugador;
+
+  @override
+  Widget build(BuildContext context) {
+    final pjSeguros = jugador.pj > 0 ? jugador.pj : 1;
+    final golesPorPartido = jugador.goles / pjSeguros;
+    final asistenciasPorPartido = jugador.asistencias / pjSeguros;
+    final pos =
+        jugador.posicion
+            .substring(0, jugador.posicion.length.clamp(0, 3))
+            .toUpperCase();
+
+    final ovr =
+        jugador.pj > 0
+            ? (55 + jugador.valoracion * 8).toInt().clamp(40, 99)
+            : 50;
+    final sho = (50 + golesPorPartido * 18).toInt().clamp(30, 99);
+    final pas = (50 + asistenciasPorPartido * 22).toInt().clamp(30, 99);
+    final pac = switch (pos) {
+      'ALA' => (ovr + 8).clamp(0, 99),
+      'PIV' => (ovr + 2).clamp(0, 99),
+      'CIE' => (ovr - 4).clamp(30, 99),
+      'POR' => (ovr - 15).clamp(30, 99),
+      _ => ovr,
+    };
+    final dri = switch (pos) {
+      'ALA' => (ovr + 7).clamp(0, 99),
+      'PIV' => (ovr + 4).clamp(0, 99),
+      'CIE' => (ovr - 3).clamp(30, 99),
+      'POR' => (ovr - 10).clamp(30, 99),
+      _ => ovr,
+    };
+    final def = switch (pos) {
+      'CIE' => (ovr + 9).clamp(0, 99),
+      'ALA' => (ovr - 8).clamp(30, 99),
+      'PIV' => (ovr - 15).clamp(30, 99),
+      'POR' => (ovr + 5).clamp(0, 99),
+      _ => ovr,
+    };
+    final phy = switch (pos) {
+      'PIV' || 'CIE' => (ovr + 6).clamp(0, 99),
+      'ALA' => (ovr - 5).clamp(30, 99),
+      _ => ovr,
+    };
+
+    final isPortero = pos == 'POR';
+    final labels =
+        isPortero
+            ? ['DIV', 'HAN', 'KIC', 'REF', 'SPD', 'POS']
+            : ['PAC', 'SHO', 'PAS', 'DRI', 'DEF', 'PHY'];
+    final stats = [pac, sho, pas, dri, def, phy];
+
+    const colorTexto = Color(0xFF332608);
+    const colorBorde = Color(0xFF4A3B12);
+
+    return Container(
+      width: 220,
+      height: 340,
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 16,
+          ),
+        ],
+      ),
+      child: ClipPath(
+        clipper: _FifaCardClipper(),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFFE8CA75),
+                Color(0xFFC59F47),
+                Color(0xFF9E7C30),
+              ],
+            ),
+            border: Border.all(color: const Color(0xFFFDE08B), width: 2),
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Opacity(
+                    opacity: 0.08,
+                    child: Icon(Icons.star, color: Colors.white, size: 340),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      height: 150,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12, left: 8),
+                            child: SizedBox(
+                              width: 50,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    '$ovr',
+                                    style: const TextStyle(
+                                      fontFamily: AppTheme.oswald,
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w900,
+                                      color: colorTexto,
+                                      height: 1,
+                                    ),
+                                  ),
+                                  Text(
+                                    pos,
+                                    style: const TextStyle(
+                                      fontFamily: AppTheme.oswald,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorTexto,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: const Text(
+                                      'G',
+                                      style: TextStyle(
+                                        color: Color(0xFFC2A679),
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child:
+                                  jugador.fotoUrl.isNotEmpty
+                                      ? Image.network(
+                                        jugador.fotoUrl,
+                                        fit: BoxFit.cover,
+                                        height: 138,
+                                      )
+                                      : Icon(
+                                        Icons.person,
+                                        size: 100,
+                                        color: colorBorde.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                      ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Divider(
+                      color: colorBorde.withValues(alpha: 0.4),
+                      height: 12,
+                    ),
+                    Text(
+                      jugador.nombre.split(' ').first.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.oswald,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: colorTexto,
+                      ),
+                    ),
+                    Divider(
+                      color: colorBorde.withValues(alpha: 0.4),
+                      height: 12,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (var i = 0; i < 3; i++)
+                                _FifaStatRow(
+                                  stat: stats[i],
+                                  label: labels[i],
+                                  color: colorTexto,
+                                ),
+                            ],
+                          ),
+                          Container(
+                            width: 1,
+                            height: 70,
+                            color: colorBorde.withValues(alpha: 0.2),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (var i = 3; i < 6; i++)
+                                _FifaStatRow(
+                                  stat: stats[i],
+                                  label: labels[i],
+                                  color: colorTexto,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FifaStatRow extends StatelessWidget {
+  const _FifaStatRow({required this.stat, required this.label, required this.color});
+
+  final int stat;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: SizedBox(
+        width: 75,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 26,
+              child: Text(
+                '$stat',
+                style: TextStyle(
+                  fontFamily: AppTheme.oswald,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: color,
+                ),
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(fontFamily: AppTheme.oswald, fontSize: 15, color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _StatCard extends StatelessWidget {
   const _StatCard({required this.label, required this.value, this.onTap});
 
@@ -469,6 +852,7 @@ class _StatCard extends StatelessWidget {
                 child: Text(
                   value,
                   style: const TextStyle(
+                    fontFamily: AppTheme.oswald,
                     color: Color(0xFFFF5B00),
                     fontSize: 50,
                     height: 0.9,

@@ -26,6 +26,9 @@ DateTime? parseMatchDateTime(String fecha, String hora) {
       month = int.parse(dateParts[1]);
       if (dateParts.length == 3) {
         year = int.parse(dateParts[2]);
+        if (year < 100) {
+          year += 2000;
+        }
       } else {
         year = now.year;
         if (now.month == 12 && month == 1) {

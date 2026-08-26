@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  static const String oswald = 'Oswald';
+
   static const Color vipBlack = Color(0xFF111111);
   static const Color vipSurface = Color(0xFF1A1A1A);
   static const Color vipSurfaceAlt = Color(0xFF222222);
   static const Color vipGold = Color(0xFFC2A679);
-  static const Color vipGoldStrong = Color(0xFFD4B483);
+  static const Color vipGoldStrong = Color(0xFFD4AF37);
+  static const Color vipError = Color(0xFFE53935);
   static const Color vipText = Color(0xFFF3F3F3);
   static const Color vipMuted = Color(0xFF9E9E9E);
   static const Color darkGrey = vipSurfaceAlt;
   static const Color mediumGrey = vipSurface;
-  static const Color lightGrey = Color(0xFF2C2C2C);
+  static const Color lightGrey = Color(0xFFE8E8E8);
   static const Color accentGrey = vipMuted;
-  static const Color primaryBlue = Color(0xFF3A4F6B);
-  static const Color lightBlue = Color(0xFF4C6484);
-  static const Color darkBlue = Color(0xFF1D2B3B);
+  static const Color primaryBlue = vipGold;
+  static const Color lightBlue = vipGoldStrong;
+  static const Color darkBlue = vipSurfaceAlt;
   static const Color goldAccent = vipGold;
   static const Color darkGold = Color(0xFFA68860);
 
@@ -28,7 +31,7 @@ class AppTheme {
       secondary: vipGoldStrong,
       tertiary: vipSurfaceAlt,
       surface: vipSurface,
-      error: Color(0xFFE57373),
+      error: vipError,
       onPrimary: Color(0xFF111111),
       onSecondary: Color(0xFF111111),
       onSurface: vipText,
@@ -55,8 +58,8 @@ class AppTheme {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: Colors.deepPurpleAccent,
-        foregroundColor: vipText,
+        backgroundColor: vipGold,
+        foregroundColor: vipBlack,
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 32),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         textStyle: const TextStyle(

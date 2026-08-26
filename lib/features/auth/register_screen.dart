@@ -59,6 +59,28 @@ class _RegisterScreenState extends State<RegisterScreen>
     super.dispose();
   }
 
+  bool _isValidBirthDate(String value) {
+    final parts = value.split('/');
+    if (parts.length != 3) {
+      return false;
+    }
+    final day = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    if (day == null || month == null || year == null) {
+      return false;
+    }
+    if (month < 1 || month > 12) {
+      return false;
+    }
+    final now = DateTime.now();
+    if (year < now.year - 100 || year > now.year - 3) {
+      return false;
+    }
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    return day >= 1 && day <= daysInMonth;
+  }
+
   Future<void> _register() async {
     final nombre = _nameCtrl.text.trim();
     final apellidos = _lastNameCtrl.text.trim();
@@ -72,6 +94,13 @@ class _RegisterScreenState extends State<RegisterScreen>
         email.isEmpty ||
         password.isEmpty) {
       setState(() => _error = 'Completa todos los campos.');
+      return;
+    }
+
+    if (!_isValidBirthDate(fechaNacimiento)) {
+      setState(
+        () => _error = 'Fecha de nacimiento no válida (DD/MM/AAAA).',
+      );
       return;
     }
 
@@ -180,9 +209,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                               'FICHAJE',
                               textAlign: TextAlign.center,
                               style: TextStyle(
+                                fontFamily: AppTheme.oswald,
                                 fontSize: 28,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.white,
+                                color: AppTheme.vipBlack,
                                 letterSpacing: 1.5,
                               ),
                             ),
@@ -233,8 +263,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 },
                                 icon: Icon(
                                   _passwordVisible
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
                                   color: AppTheme.accentGrey,
                                 ),
                               ),
@@ -283,7 +313,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                           strokeWidth: 2,
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
-                                                Colors.white,
+                                                AppTheme.vipBlack,
                                               ),
                                         ),
                                       )

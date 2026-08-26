@@ -6,6 +6,22 @@ import '../models/lineup_player.dart';
 import '../models/match_model.dart';
 import '../models/player_stat.dart';
 import '../utils/date_utils.dart';
+import '../utils/gambeta_score_calc.dart';
+
+const String temporadaActual = '26/27';
+const String _guestGlobalId = 'invitado_global';
+
+class MonthlySummary {
+  const MonthlySummary({
+    required this.partidos,
+    required this.goles,
+    this.socioNombre,
+  });
+
+  final int partidos;
+  final int goles;
+  final String? socioNombre;
+}
 
 class FirestoreService {
   FirestoreService({FirebaseFirestore? firestore, FirebaseAuth? auth})
@@ -63,15 +79,24 @@ class FirestoreService {
     return _db
         .collection('partidos')
         .where('estado', whereIn: ['Pendiente', 'En Juego'])
-        .orderBy('fecha')
-        .limit(1)
         .snapshots()
         .map((query) {
           if (query.docs.isEmpty) {
             return null;
           }
-          final d = query.docs.first;
-          return MatchModel.fromMap(d.id, d.data());
+          final matches =
+              query.docs.map((d) => MatchModel.fromMap(d.id, d.data())).toList()
+                ..sort((a, b) {
+                  final aDate = parseMatchDateTime(a.fecha, a.hora);
+                  final bDate = parseMatchDateTime(b.fecha, b.hora);
+                  if (aDate != null && bDate != null) {
+                    return aDate.compareTo(bDate);
+                  }
+                  if (aDate != null) return -1;
+                  if (bDate != null) return 1;
+                  return a.fecha.compareTo(b.fecha);
+                });
+          return matches.first;
         });
   }
 
@@ -203,6 +228,8 @@ class FirestoreService {
     required String scorerId,
     required int scorerTeam,
     required int minute,
+    required int indiceTurno,
+    required int segundosTurno,
     String scorerName = '',
     String? assistId,
     String? assistName,
@@ -224,6 +251,8 @@ class FirestoreService {
       'idAsistente': assistId ?? '',
       'nombreAsistente': assistName ?? '',
       'minuto': minute,
+      'indiceTurno': indiceTurno,
+      'segundosTurno': segundosTurno,
       'scorerId': scorerId,
       'scorerName': scorerName,
       'scorerTeam': scorerTeam,
@@ -236,25 +265,6 @@ class FirestoreService {
       scorerTeam == 1 ? 'goles1' : 'goles2': FieldValue.increment(1),
     });
     await batch.commit();
-  }
-
-  Future<void> addLiveEvent({
-    required String matchId,
-    required String scorerId,
-    required String scorerName,
-    required int scorerTeam,
-    String? assistId,
-    String? assistName,
-  }) {
-    return addLiveGoal(
-      matchId: matchId,
-      scorerId: scorerId,
-      scorerName: scorerName,
-      scorerTeam: scorerTeam,
-      minute: 0,
-      assistId: assistId,
-      assistName: assistName,
-    );
   }
 
   Future<void> createMatch({
@@ -291,6 +301,8 @@ class FirestoreService {
       'indiceTurno': 0,
       'tiempoSegundos': 360,
       'timestampInicio': 0,
+      'invitados': <Map<String, dynamic>>[],
+      'temporada': temporadaActual,
     });
   }
 
@@ -320,11 +332,13 @@ class FirestoreService {
     required List<String> convocatoria1,
     required List<String> convocatoria2,
     required String adminPartido,
+    required List<GuestPlayer> invitados,
   }) {
     return _db.collection('partidos').doc(matchId).update({
       'convocatoria1': convocatoria1,
       'convocatoria2': convocatoria2,
       'adminPartido': adminPartido,
+      'invitados': invitados.map((e) => e.toMap()).toList(),
     });
   }
 
@@ -367,58 +381,175 @@ class FirestoreService {
     required int goles2,
     required List<PlayerStat> stats,
   }) async {
-    final events =
-        await _db
-            .collection('partidos')
-            .doc(matchId)
-            .collection('eventos_live')
-            .get();
+    final matchSnap = await _db.collection('partidos').doc(matchId).get();
+    final match = MatchModel.fromMap(matchSnap.id, matchSnap.data() ?? {});
 
-    final goalsMap = <String, int>{};
-    var autoGoals1 = 0;
-    var autoGoals2 = 0;
+    final puntosDefensivos = await _calcularPuntosDefensivos(
+      matchId: matchId,
+      raw1: match.alineacionDetallada1,
+      raw2: match.alineacionDetallada2,
+      indiceTurno: match.indiceTurno,
+    );
 
-    for (final e in events.docs) {
-      final data = e.data();
-      if (data['type'] != 'goal' && data['tipo'] != 'GOL') {
-        continue;
-      }
-      final scorerId =
-          (data['idGoleador'] as String?) ?? (data['scorerId'] as String?);
-      final team =
-          ((data['equipo'] as num?) ?? (data['scorerTeam'] as num?))?.toInt() ??
-          1;
-      if (scorerId != null && scorerId.isNotEmpty) {
-        goalsMap[scorerId] = (goalsMap[scorerId] ?? 0) + 1;
-      }
-      if (team == 1) {
-        autoGoals1++;
-      } else {
-        autoGoals2++;
-      }
-    }
+    final played =
+        stats.where((s) => s.haJugado).map((s) {
+          final esLocal = s.equipo == 1;
+          return s.copyWith(
+            puntosDefensivos: puntosDefensivos[s.id] ?? 0,
+            notaObjetiva: calcularNotaObjetiva(
+              goles: s.goles,
+              asistencias: s.asistencias,
+              posicionFutsal: s.posicion,
+              golesEquipo: esLocal ? goles1 : goles2,
+              golesRival: esLocal ? goles2 : goles1,
+            ),
+          );
+        }).toList();
 
     final batch = _db.batch();
     final partidoRef = _db.collection('partidos').doc(matchId);
-    final played = stats.where((s) => s.haJugado).toList();
-    final finalGoles1 = goalsMap.isNotEmpty ? autoGoals1 : goles1;
-    final finalGoles2 = goalsMap.isNotEmpty ? autoGoals2 : goles2;
 
     batch.update(partidoRef, {
       'estado': 'Finalizado',
-      'goles1': finalGoles1,
-      'goles2': finalGoles2,
+      'goles1': goles1,
+      'goles2': goles2,
       'timestampCierre': DateTime.now().millisecondsSinceEpoch,
       'estadisticasJugadores': played.map((e) => e.toMap()).toList(),
     });
 
     for (final s in played) {
-      final userRef = _db.collection('usuarios').doc(s.id);
-      batch.update(userRef, {
+      final docId = s.esInvitado ? _guestGlobalId : s.id;
+      final userRef = _db.collection('usuarios').doc(docId);
+      final incrementos = {
         'pj': FieldValue.increment(1),
         'goles': FieldValue.increment(s.goles),
         'asistencias': FieldValue.increment(s.asistencias),
+        'puntosDefensivos': FieldValue.increment(s.puntosDefensivos),
+      };
+      if (s.esInvitado) {
+        batch.set(userRef, {
+          ...incrementos,
+          'nombre': 'Invitados Globales',
+        }, SetOptions(merge: true));
+      } else {
+        batch.update(userRef, incrementos);
+      }
+    }
+
+    await batch.commit();
+  }
+
+  Future<Map<String, int>> _calcularPuntosDefensivos({
+    required String matchId,
+    required List<LineupPlayer> raw1,
+    required List<LineupPlayer> raw2,
+    required int indiceTurno,
+  }) async {
+    final golesSnap =
+        await _db
+            .collection('partidos')
+            .doc(matchId)
+            .collection('eventos_live')
+            .where('tipo', isEqualTo: 'GOL')
+            .get();
+    final goles = golesSnap.docs.map((d) => d.data()).toList();
+
+    List<LineupPlayer> porteros(List<LineupPlayer> raw) {
+      final conOrden =
+          raw.where((p) => p.ordenPortero > 0).toList()
+            ..sort((a, b) => a.ordenPortero.compareTo(b.ordenPortero));
+      return conOrden.isEmpty ? raw : conOrden;
+    }
+
+    final porteros1 = porteros(raw1);
+    final porteros2 = porteros(raw2);
+    final acumulador = <String, int>{};
+
+    for (var t = 0; t <= indiceTurno; t++) {
+      final segundosConcedidosEq1 =
+          goles
+              .where(
+                (g) =>
+                    ((g['indiceTurno'] as num?)?.toInt() ?? 0) == t &&
+                    ((g['equipo'] as num?)?.toInt() ?? 0) == 2,
+              )
+              .map((g) => (g['segundosTurno'] as num?)?.toInt() ?? 0)
+              .toList();
+      final segundosConcedidosEq2 =
+          goles
+              .where(
+                (g) =>
+                    ((g['indiceTurno'] as num?)?.toInt() ?? 0) == t &&
+                    ((g['equipo'] as num?)?.toInt() ?? 0) == 1,
+              )
+              .map((g) => (g['segundosTurno'] as num?)?.toInt() ?? 0)
+              .toList();
+
+      final puntosEq1 = _puntosDefensivosTurno(segundosConcedidosEq1);
+      final puntosEq2 = _puntosDefensivosTurno(segundosConcedidosEq2);
+
+      final idPortero1 =
+          porteros1.isNotEmpty ? porteros1[t % porteros1.length].id : null;
+      final idPortero2 =
+          porteros2.isNotEmpty ? porteros2[t % porteros2.length].id : null;
+
+      for (final jug in raw1) {
+        if (jug.id == idPortero1) continue;
+        acumulador[jug.id] = (acumulador[jug.id] ?? 0) + puntosEq1;
+      }
+      for (final jug in raw2) {
+        if (jug.id == idPortero2) continue;
+        acumulador[jug.id] = (acumulador[jug.id] ?? 0) + puntosEq2;
+      }
+    }
+
+    return acumulador;
+  }
+
+  int _puntosDefensivosTurno(List<int> golesSegundos) {
+    final ordenados = [...golesSegundos]..sort();
+    var puntos = 0;
+    var ultimo = 0;
+    for (final segundo in ordenados) {
+      puntos += (segundo - ultimo) ~/ 30;
+      ultimo = segundo;
+    }
+    puntos += (360 - ultimo) ~/ 30;
+    final penalizacion =
+        golesSegundos.length >= 2 ? golesSegundos.length - 1 : 0;
+    return puntos - penalizacion;
+  }
+
+  Future<void> reassignPlayerTeam({
+    required String matchId,
+    required String jugadorId,
+    required int nuevoEquipo,
+  }) async {
+    final partidoRef = _db.collection('partidos').doc(matchId);
+    final eventosRef = partidoRef.collection('eventos_live');
+    final batch = _db.batch();
+
+    if (nuevoEquipo == 1) {
+      batch.update(partidoRef, {
+        'convocatoria1': FieldValue.arrayUnion([jugadorId]),
+        'convocatoria2': FieldValue.arrayRemove([jugadorId]),
       });
+    } else {
+      batch.update(partidoRef, {
+        'convocatoria1': FieldValue.arrayRemove([jugadorId]),
+        'convocatoria2': FieldValue.arrayUnion([jugadorId]),
+      });
+    }
+
+    final golesJugador =
+        await eventosRef.where('idGoleador', isEqualTo: jugadorId).get();
+    for (final doc in golesJugador.docs) {
+      batch.update(doc.reference, {'equipo': nuevoEquipo});
+    }
+    final asistenciasJugador =
+        await eventosRef.where('idAsistente', isEqualTo: jugadorId).get();
+    for (final doc in asistenciasJugador.docs) {
+      batch.update(doc.reference, {'equipo': nuevoEquipo});
     }
 
     await batch.commit();
@@ -481,5 +612,63 @@ class FirestoreService {
             .where('estado', isEqualTo: 'Finalizado')
             .get();
     return query.size;
+  }
+
+  Future<MonthlySummary> monthlySummary(String uid) async {
+    if (uid.isEmpty) {
+      return const MonthlySummary(partidos: 0, goles: 0);
+    }
+    final now = DateTime.now();
+    final matches = await finishedMatchesForUser(uid).first;
+    final delMes =
+        matches.where((m) {
+          final dt = DateTime.fromMillisecondsSinceEpoch(m.timestampCierre);
+          return dt.year == now.year && dt.month == now.month;
+        }).toList();
+
+    var goles = 0;
+    final coincidencias = <String, int>{};
+    final nombres = <String, String>{};
+
+    for (final m in delMes) {
+      final propios = m.estadisticasJugadores.where((s) => s.id == uid);
+      if (propios.isEmpty) {
+        continue;
+      }
+      final propio = propios.first;
+      goles += propio.goles;
+      for (final s in m.estadisticasJugadores) {
+        if (s.id == uid || s.equipo != propio.equipo) {
+          continue;
+        }
+        coincidencias[s.id] = (coincidencias[s.id] ?? 0) + 1;
+        nombres[s.id] = s.nombre;
+      }
+    }
+
+    String? socio;
+    if (coincidencias.isNotEmpty) {
+      final topId =
+          coincidencias.entries
+              .reduce((a, b) => a.value >= b.value ? a : b)
+              .key;
+      socio = nombres[topId];
+    }
+
+    return MonthlySummary(
+      partidos: delMes.length,
+      goles: goles,
+      socioNombre: socio,
+    );
+  }
+
+  Future<Map<String, Map<String, dynamic>>> pastSeasons(String uid) async {
+    final snap =
+        await _db
+            .collection('usuarios')
+            .doc(uid)
+            .collection('temporadas_pasadas')
+            .get();
+    return {for (final d in snap.docs) d.id: d.data()};
   }
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/models/match_model.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 
@@ -267,6 +268,7 @@ class UltimoPartidoCard extends StatelessWidget {
                           Text(
                             '${match.goles1}',
                             style: const TextStyle(
+                              fontFamily: AppTheme.oswald,
                               fontSize: 56,
                               height: 0.9,
                               fontWeight: FontWeight.w900,
@@ -287,6 +289,7 @@ class UltimoPartidoCard extends StatelessWidget {
                           Text(
                             '${match.goles2}',
                             style: const TextStyle(
+                              fontFamily: AppTheme.oswald,
                               fontSize: 56,
                               height: 0.9,
                               fontWeight: FontWeight.w900,
@@ -406,6 +409,7 @@ class _Countdown extends StatelessWidget {
             Text(
               v.toString().padLeft(2, '0'),
               style: const TextStyle(
+                fontFamily: AppTheme.oswald,
                 color: Colors.white,
                 fontWeight: FontWeight.w900,
                 fontSize: 18,

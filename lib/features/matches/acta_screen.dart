@@ -85,11 +85,28 @@ class _ActaScreenState extends State<ActaScreen> {
                   asistencias: recuentoAsistencias[uid] ?? 0,
                   haJugado: true,
                   equipo: conv1.contains(uid) ? 1 : 2,
+                  posicion: (d.data()['posicion'] as String?) ?? 'Sin definir',
                 );
               }
               return null;
-            }).toList()
-            ..sort((a, b) => a.equipo.compareTo(b.equipo));
+            }).toList();
+
+      for (final guest in match.invitados) {
+        if (conv1.contains(guest.id) || conv2.contains(guest.id)) {
+          listaStats.add(
+            PlayerStat(
+              id: guest.id,
+              nombre: guest.nombre,
+              goles: recuentoGoles[guest.id] ?? 0,
+              asistencias: recuentoAsistencias[guest.id] ?? 0,
+              haJugado: true,
+              equipo: conv1.contains(guest.id) ? 1 : 2,
+              posicion: 'INV',
+            ),
+          );
+        }
+      }
+      listaStats.sort((a, b) => a.equipo.compareTo(b.equipo));
 
       setState(() {
         _match = match;
@@ -101,6 +118,32 @@ class _ActaScreenState extends State<ActaScreen> {
     } catch (e) {
       debugPrint('Error cargando acta: $e');
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _swapTeam(int index, PlayerStat player) async {
+    final nuevoEquipo = player.equipo == 1 ? 2 : 1;
+    try {
+      await _service.reassignPlayerTeam(
+        matchId: _match!.id,
+        jugadorId: player.id,
+        nuevoEquipo: nuevoEquipo,
+      );
+      setState(() {
+        _stats[index] = player.copyWith(equipo: nuevoEquipo);
+        _stats.sort((a, b) => a.equipo.compareTo(b.equipo));
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Jugador y estadísticas reasignados')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -347,6 +390,15 @@ class _ActaScreenState extends State<ActaScreen> {
                   ),
                 ),
                 const Spacer(),
+                IconButton(
+                  icon: const Icon(
+                    Icons.swap_horiz,
+                    color: Color(0xFFC2A679),
+                    size: 20,
+                  ),
+                  tooltip: 'Cambiar equipo',
+                  onPressed: () => _swapTeam(index, player),
+                ),
                 Text(
                   player.equipo == 1 ? 'LOC' : 'VIS',
                   style: TextStyle(

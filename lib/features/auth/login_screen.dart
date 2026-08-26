@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/app_theme.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -59,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
       filled: true,
       fillColor: Colors.white,
       labelStyle: const TextStyle(color: Colors.grey),
-      floatingLabelStyle: const TextStyle(color: Colors.deepPurpleAccent),
+      floatingLabelStyle: const TextStyle(color: AppTheme.vipGold),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: Colors.grey),
@@ -70,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.deepPurpleAccent, width: 2),
+        borderSide: const BorderSide(color: AppTheme.vipGold, width: 2),
       ),
       suffixIcon: suffixIcon,
     );
@@ -140,7 +142,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => context.go('/recuperar-contrasena'),
+                    child: const Text(
+                      '¿Olvidaste tu contraseña?',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ),
 
                 if (_mensajeError != null)
                   Padding(
@@ -156,13 +167,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _loading ? null : _procesarFormulario,
                     style: FilledButton.styleFrom(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      backgroundColor: Colors.deepPurpleAccent, 
+                      backgroundColor: AppTheme.vipGold, 
                     ),
                     child: _loading
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const CircularProgressIndicator(color: AppTheme.vipBlack)
                         : const Text(
                             "SALTAR AL CAMPO",
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.vipBlack),
                           ),
                   ),
                 ),

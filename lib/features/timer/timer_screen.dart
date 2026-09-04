@@ -55,9 +55,12 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
   int _turnIndex = 0;
   int _seconds = _turnDuration;
   int _changeCountdown = -1;
+  int _preStartCountdown = -1;
   bool _active = false;
   bool _starting = false;
   bool _savingGoal = false;
+  MatchModel? _currentMatch;
+  bool _canManage = false;
 
   @override
   void dispose() {
@@ -131,7 +134,7 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
 
   void _ensureTimer() {
     _timer?.cancel();
-    if (!_active) {
+    if (!_active && _changeCountdown <= 0) {
       return;
     }
 
@@ -140,26 +143,51 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
         timer.cancel();
         return;
       }
-      if (!_active || _seconds <= 0) {
-        timer.cancel();
+      if (_active && _seconds > 0) {
+        setState(() {
+          _seconds--;
+          if (_seconds == 0) {
+            _active = false;
+            _changeCountdown = 15;
+          }
+        });
         return;
       }
-      setState(() {
-        _seconds--;
-        if (_seconds == 0) {
-          _active = false;
-          _changeCountdown = 15;
+      if (_changeCountdown > 0) {
+        setState(() => _changeCountdown--);
+        if (_changeCountdown == 0) {
+          timer.cancel();
+          final match = _currentMatch;
+          if (_canManage && match != null) {
+            _nextTurn(match);
+          }
         }
-      });
+        return;
+      }
+      timer.cancel();
     });
   }
 
-  Future<void> _startMatch(MatchModel match) async {
+  Future<void> _beginCountdownAndStart(MatchModel match) async {
     if (_lineup1.isEmpty || _lineup2.isEmpty) {
       _showMessage('Configura la convocatoria antes de iniciar.');
       return;
     }
+    for (var i = 5; i >= 1; i--) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _preStartCountdown = i);
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() => _preStartCountdown = -1);
+    await _startMatch(match);
+  }
 
+  Future<void> _startMatch(MatchModel match) async {
     setState(() => _starting = true);
     try {
       await _service.startMatch(
@@ -242,9 +270,11 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
 
                 final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
                 final canManage =
-                    currentUser?.rol == 'admin' ||
+                    (currentUser?.isAdmin ?? false) ||
                     match.adminPartido.isEmpty ||
                     match.adminPartido == uid;
+                _currentMatch = match;
+                _canManage = canManage;
 
                 return Scaffold(
                   backgroundColor: const Color(0xFFF5F5F7),
@@ -335,7 +365,10 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
             child:
                 canManage
                     ? FilledButton(
-                      onPressed: _starting ? null : () => _startMatch(match),
+                      onPressed:
+                          _starting || _preStartCountdown > 0
+                              ? null
+                              : () => _beginCountdownAndStart(match),
                       style: FilledButton.styleFrom(
                         backgroundColor: _danger,
                         minimumSize: const Size(double.infinity, 60),
@@ -369,6 +402,36 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
                     ),
           ),
         ),
+        if (_preStartCountdown > 0)
+          IgnorePointer(
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.86),
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'EMPEZANDO EN',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$_preStartCountdown',
+                    style: const TextStyle(
+                      fontFamily: AppTheme.oswald,
+                      color: _gold,
+                      fontSize: 96,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -443,7 +506,7 @@ class _TimerTurnosScreenState extends State<TimerTurnosScreen> {
                 ),
               ),
               icon: const Icon(Icons.sports_soccer, size: 30),
-              label: const Text('REGISTRAR GOL'),
+              label: const Text('¡REGISTRAR GOL!'),
             ),
             if (_seconds == 0) ...[
               const SizedBox(height: 12),
@@ -1361,7 +1424,7 @@ class _LivePerformanceCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'RENDIMIENTO EN VIVO',
+              '📊 RENDIMIENTO EN VIVO',
               style: TextStyle(
                 color: Colors.grey,
                 fontSize: 11,
@@ -1453,7 +1516,7 @@ class _TeamStats extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$g G  $a A',
+                  '$g⚽ $a👟',
                   style: TextStyle(
                     color: hasStats ? Colors.black : Colors.grey.shade400,
                     fontSize: 12,
@@ -1504,7 +1567,7 @@ class _GoalDialogState extends State<_GoalDialog> {
           child: Column(
             children: [
               const Text(
-                'GOLAZO',
+                '¡GOLAAAAAZO!',
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 28,

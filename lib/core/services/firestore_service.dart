@@ -11,6 +11,21 @@ import '../utils/gambeta_score_calc.dart';
 const String temporadaActual = '26/27';
 const String _guestGlobalId = 'invitado_global';
 
+/// Convierte una etiqueta de temporada "26/27" en un id de documento válido
+/// para Firestore (que no admite "/"), p. ej. "2026-2027".
+String archivedSeasonId(String temporada) {
+  final parts = temporada.split('/');
+  if (parts.length != 2) {
+    return temporada.replaceAll('/', '-');
+  }
+  int fullYear(String twoDigits) {
+    final n = int.tryParse(twoDigits) ?? 0;
+    return 2000 + n;
+  }
+
+  return '${fullYear(parts[0])}-${fullYear(parts[1])}';
+}
+
 class MonthlySummary {
   const MonthlySummary({
     required this.partidos,
@@ -42,7 +57,7 @@ class FirestoreService {
       if (!snap.exists || snap.data() == null) {
         return false;
       }
-      return (snap.data()!['rol'] as String?) == 'admin';
+      return AppUser.fromMap(snap.id, snap.data()!).isAdmin;
     });
   }
 
@@ -146,6 +161,7 @@ class FirestoreService {
     return _db
         .collection('partidos')
         .where('estado', isEqualTo: 'Finalizado')
+        .where('temporada', isEqualTo: temporadaActual)
         .snapshots()
         .map((query) {
           final filtered =
@@ -309,14 +325,12 @@ class FirestoreService {
   Future<void> updateProfile({
     required String uid,
     required String nombre,
-    required String correo,
     required String fechaNacimiento,
     required String posicion,
     required String fotoUrl,
   }) async {
     final data = {
       'nombre': nombre,
-      'correo': correo,
       'fechaNacimiento': fechaNacimiento,
       'posicion': posicion,
       'fotoUrl': fotoUrl,
@@ -560,9 +574,6 @@ class FirestoreService {
     required Map<String, double> ratings,
     required String voterUid,
   }) async {
-    final users = await _db.collection('usuarios').get();
-    final batch = _db.batch();
-
     final partidoRef = _db.collection('partidos').doc(match.id);
     final voterDocRef = partidoRef.collection('votos').doc(voterUid);
 
@@ -570,6 +581,18 @@ class FirestoreService {
     if (existingVote.exists) {
       throw Exception('Este usuario ya ha votado este partido.');
     }
+
+    // Los invitados no tienen documento propio en `usuarios`: sus votos se
+    // redirigen y acumulan en el documento global `invitado_global`, igual
+    // que hace la app Android.
+    final aggregated = <String, List<double>>{};
+    ratings.forEach((playerId, rating) {
+      final targetId =
+          playerId.startsWith('invitado_') ? _guestGlobalId : playerId;
+      aggregated.putIfAbsent(targetId, () => []).add(rating);
+    });
+
+    final batch = _db.batch();
 
     batch.update(partidoRef, {
       'hanVotado': FieldValue.arrayUnion([voterUid]),
@@ -582,24 +605,23 @@ class FirestoreService {
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
 
-    for (final doc in users.docs) {
-      final uid = doc.id;
-      final rating = ratings[uid];
-      if (rating == null) {
-        continue;
-      }
-
-      final prevStars = (doc.data()['totalEstrellas'] as num?)?.toDouble() ?? 0;
-      final prevVotes = (doc.data()['votosRecibidos'] as num?)?.toInt() ?? 0;
-      final newStars = prevStars + rating;
-      final newVotes = prevVotes + 1;
+    for (final entry in aggregated.entries) {
+      final userRef = _db.collection('usuarios').doc(entry.key);
+      final snap = await userRef.get();
+      final prevStars = (snap.data()?['totalEstrellas'] as num?)?.toDouble() ?? 0;
+      final prevVotes = (snap.data()?['votosRecibidos'] as num?)?.toInt() ?? 0;
+      final addedStars = entry.value.fold<double>(0, (a, b) => a + b);
+      final addedVotes = entry.value.length;
+      final newStars = prevStars + addedStars;
+      final newVotes = prevVotes + addedVotes;
       final avg = ((newStars / newVotes) * 10).round() / 10;
 
-      batch.update(doc.reference, {
+      batch.set(userRef, {
         'totalEstrellas': newStars,
         'votosRecibidos': newVotes,
         'valoracion': avg,
-      });
+        if (entry.key == _guestGlobalId) 'nombre': 'Invitados Globales',
+      }, SetOptions(merge: true));
     }
 
     await batch.commit();
@@ -670,5 +692,49 @@ class FirestoreService {
             .collection('temporadas_pasadas')
             .get();
     return {for (final d in snap.docs) d.id: d.data()};
+  }
+
+  /// Archiva las estadísticas de todos los jugadores en
+  /// `usuarios/{uid}/temporadas_pasadas/{temporada}` y resetea los
+  /// contadores en vivo a 0, dando paso a una nueva temporada.
+  Future<void> resetSeason() async {
+    final seasonId = archivedSeasonId(temporadaActual);
+    final totalPartidos = await totalFinishedMatches();
+    final snapshot = await _db.collection('usuarios').get();
+
+    const chunkSize = 200; // 2 escrituras/usuario, bajo el límite de 500 por batch
+    for (var i = 0; i < snapshot.docs.length; i += chunkSize) {
+      final chunk = snapshot.docs.skip(i).take(chunkSize);
+      final batch = _db.batch();
+
+      for (final doc in chunk) {
+        final data = doc.data();
+        final historicoRef = doc.reference
+            .collection('temporadas_pasadas')
+            .doc(seasonId);
+
+        batch.set(historicoRef, {
+          'pj': data['pj'] ?? 0,
+          'goles': data['goles'] ?? 0,
+          'asistencias': data['asistencias'] ?? 0,
+          'valoracion': data['valoracion'] ?? 0.0,
+          'puntosDefensivos': data['puntosDefensivos'] ?? 0,
+          'listaTitulos': data['titulos_2026'] ?? <String>[],
+          'totalPartidosPenaAnual': totalPartidos,
+        });
+
+        batch.update(doc.reference, {
+          'pj': 0,
+          'goles': 0,
+          'asistencias': 0,
+          'valoracion': 0.0,
+          'puntosDefensivos': 0,
+          'totalEstrellas': 0.0,
+          'votosRecibidos': 0,
+        });
+      }
+
+      await batch.commit();
+    }
   }
 }

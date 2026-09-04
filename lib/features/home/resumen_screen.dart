@@ -6,6 +6,7 @@ import '../../core/models/app_user.dart';
 import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../common/app_bottom_nav.dart';
 import '../common/avatar_jugador.dart';
 import '../common/match_cards.dart';
 
@@ -237,7 +238,7 @@ class _ResumenScreenState extends State<ResumenScreen> {
                           ],
                         ),
                   ),
-                  bottomNavigationBar: _buildBottomNav(context, activeIndex: 0),
+                  bottomNavigationBar: const AppBottomNavBar(selectedIndex: 0),
                 );
               },
             );
@@ -247,51 +248,124 @@ class _ResumenScreenState extends State<ResumenScreen> {
     );
   }
 
-  Widget _buildBottomNav(BuildContext context, {required int activeIndex}) {
-    return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8F2FB),
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.10),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: _BottomNavItem(
-                label: 'Inicio',
-                icon: Icons.home_rounded,
-                selected: activeIndex == 0,
-                onTap: () => context.go('/resumen'),
+  bool _esMesDeReseteo() {
+    final month = DateTime.now().month;
+    return month == DateTime.july || month == DateTime.august;
+  }
+
+  Future<void> _showResetSeasonDialog(BuildContext context) async {
+    final controller = TextEditingController();
+    bool procesando = false;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setLocal) {
+            return AlertDialog(
+              title: const Text(
+                '⚠️ Cerrar Temporada',
+                style: TextStyle(fontWeight: FontWeight.w900),
               ),
-            ),
-            Expanded(
-              child: _BottomNavItem(
-                label: 'Plantilla',
-                icon: Icons.groups_rounded,
-                selected: activeIndex == 1,
-                onTap: () => context.go('/plantilla'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Se guardará el historial de todos los jugadores y los '
+                    'contadores volverán a 0. Esta acción no se puede '
+                    'deshacer.',
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Para confirmar, escribe la palabra RESETEAR en '
+                    'mayúsculas:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'RESETEAR',
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.red),
+                      ),
+                    ),
+                    onChanged: (_) => setLocal(() {}),
+                  ),
+                ],
               ),
-            ),
-            Expanded(
-              child: _BottomNavItem(
-                label: 'Turnos',
-                icon: Icons.timer_rounded,
-                selected: activeIndex == 2,
-                onTap: () => context.go('/timer'),
-              ),
-            ),
-          ],
-        ),
-      ),
+              actions: [
+                TextButton(
+                  onPressed:
+                      procesando ? null : () => Navigator.of(dialogContext).pop(),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    disabledBackgroundColor: Colors.grey.shade300,
+                  ),
+                  onPressed:
+                      controller.text == 'RESETEAR' && !procesando
+                          ? () async {
+                            setLocal(() => procesando = true);
+                            try {
+                              await _service.resetSeason();
+                              if (dialogContext.mounted) {
+                                Navigator.of(dialogContext).pop();
+                              }
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      '¡Nueva temporada 26/27 iniciada!',
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              setLocal(() => procesando = false);
+                              if (dialogContext.mounted) {
+                                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
+                            }
+                          }
+                          : null,
+                  child:
+                      procesando
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                          : const Text(
+                            'SÍ, REINICIAR TODO',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -299,7 +373,7 @@ class _ResumenScreenState extends State<ResumenScreen> {
     if (user == null) {
       return false;
     }
-    final isManager = user.rol == 'admin' || match.adminPartido == user.id;
+    final isManager = user.isAdmin || match.adminPartido == user.id;
     return isManager && match.estado == 'En Juego';
   }
 
@@ -344,7 +418,7 @@ class _ResumenScreenState extends State<ResumenScreen> {
                 title: const Text('Editar perfil'),
                 onTap: () => context.push('/editar-perfil'),
               ),
-              if (user?.rol == 'admin')
+              if (user?.isAdmin ?? false)
                 ListTile(
                   leading: const Icon(Icons.add_circle),
                   title: const Text('Crear partido'),
@@ -380,6 +454,18 @@ class _ResumenScreenState extends State<ResumenScreen> {
                 title: const Text('Resumen del mes'),
                 onTap: () => context.push('/resumen-mensual'),
               ),
+              if ((user?.isAdmin ?? false) && _esMesDeReseteo())
+                ListTile(
+                  leading: const Icon(Icons.warning, color: Colors.red),
+                  title: const Text(
+                    'Cerrar Temporada',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _showResetSeasonDialog(context);
+                  },
+                ),
               const Spacer(),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
@@ -393,56 +479,6 @@ class _ResumenScreenState extends State<ResumenScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final background = selected ? const Color(0xFFE1D1FA) : Colors.transparent;
-    final foreground =
-        selected ? const Color(0xFF1C1630) : const Color(0xFF5B5670);
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: foreground, size: 27),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: foreground,
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-              ),
-            ),
-          ],
         ),
       ),
     );

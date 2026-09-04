@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/match_model.dart';
 import '../../core/models/player_stat.dart';
 import '../../core/services/firestore_service.dart';
+import '../common/app_bottom_nav.dart';
 
 class ActaScreen extends StatefulWidget {
   const ActaScreen({super.key});
@@ -180,12 +181,16 @@ class _ActaScreenState extends State<ActaScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        bottomNavigationBar: AppBottomNavBar(selectedIndex: -1),
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     if (_match == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Cerrar Acta')),
+        bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
         body: const Center(child: Text('No hay ningún partido pendiente.')),
       );
     }
@@ -237,6 +242,7 @@ class _ActaScreenState extends State<ActaScreen> {
   Widget _buildEmptyState() {
     return Scaffold(
       appBar: AppBar(backgroundColor: const Color(0xFFF5F1E7), elevation: 0),
+      bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -484,37 +490,44 @@ class _ActaScreenState extends State<ActaScreen> {
   }
 
   Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: FilledButton(
-        onPressed: _saving ? null : _saveActa,
-        style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF1A1A1A),
-          minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          color: const Color(0xFFF5F1E7),
+          child: FilledButton(
+            onPressed: _saving ? null : _saveActa,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF1A1A1A),
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child:
+                _saving
+                    ? const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                    : const Text(
+                      'GUARDAR ACTA',
+                      style: TextStyle(
+                        color: Color(0xFFC2A679),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        letterSpacing: 2,
+                      ),
+                    ),
           ),
         ),
-        child:
-            _saving
-                ? const SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-                : const Text(
-                  'GUARDAR ACTA',
-                  style: TextStyle(
-                    color: Color(0xFFC2A679),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    letterSpacing: 2,
-                  ),
-                ),
-      ),
+        const AppBottomNavBar(selectedIndex: -1),
+      ],
     );
   }
 }

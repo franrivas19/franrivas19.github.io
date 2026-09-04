@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/app_user.dart';
 import '../../core/services/firestore_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../common/app_bottom_nav.dart';
 import '../common/avatar_jugador.dart';
 
 class GoleadoresScreen extends StatefulWidget {
@@ -49,6 +50,7 @@ class _GoleadoresScreenState extends State<GoleadoresScreen> {
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
+      bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
       body: StreamBuilder<List<AppUser>>(
         stream: _service.allUsers(),
         builder: (context, snapshot) {

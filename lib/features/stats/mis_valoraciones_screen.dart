@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
+import '../common/app_bottom_nav.dart';
 
 class MisValoracionesScreen extends StatelessWidget {
   const MisValoracionesScreen({super.key});
@@ -12,16 +13,29 @@ class MisValoracionesScreen extends StatelessWidget {
     final uid = service.currentUid;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('MIS VALORACIONES')),
+      backgroundColor: const Color(0xFF111111),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF111111),
+        foregroundColor: Colors.white,
+        title: const Text('MIS VALORACIONES'),
+      ),
+      bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
       body: StreamBuilder<List<MatchModel>>(
         stream: service.finishedMatchesForUser(uid),
         builder: (context, snapshot) {
           final matches = snapshot.data ?? const <MatchModel>[];
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFFC2A679)),
+            );
           }
           if (matches.isEmpty) {
-            return const Center(child: Text('Aun no tienes partidos finalizados.'));
+            return const Center(
+              child: Text(
+                'Aún no tienes partidos finalizados.',
+                style: TextStyle(color: Colors.white70),
+              ),
+            );
           }
 
           return GridView.builder(
@@ -40,7 +54,7 @@ class MisValoracionesScreen extends StatelessWidget {
                 builder: (context, dataSnap) {
                   final data = dataSnap.data;
                   final isMvp = data?.isMvp ?? false;
-                  final score = data?.myScore ?? 0;
+                  final score = data?.myAverage ?? 0;
 
                   return Container(
                     decoration: BoxDecoration(
@@ -81,7 +95,7 @@ class MisValoracionesScreen extends StatelessWidget {
                           ),
                           const Spacer(),
                           Text(
-                            score.toStringAsFixed(2),
+                            score.toStringAsFixed(1),
                             style: TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.w900,
@@ -134,37 +148,45 @@ class MisValoracionesScreen extends StatelessWidget {
       });
     }
 
-    double scoreFor(String playerId) {
+    double averageFor(String playerId) {
       final avg = (totals[playerId] ?? 0) / (counts[playerId] ?? 1);
+      return (avg * 10).round() / 10;
+    }
+
+    double mvpRankFor(String playerId, double avg) {
       final filtered = match.estadisticasJugadores.where((s) => s.id == playerId).toList();
       final stat = filtered.isEmpty ? null : filtered.first;
       final goles = stat?.goles ?? 0;
-      return avg + (0.1 * goles);
+      final asistencias = stat?.asistencias ?? 0;
+      return avg + (0.001 * (goles + asistencias));
     }
 
-    var maxScore = -1.0;
+    var maxRank = double.negativeInfinity;
+    var maxAvg = 0.0;
     var maxPlayerId = '';
     for (final p in match.estadisticasJugadores) {
       if (!p.haJugado) {
         continue;
       }
-      final s = scoreFor(p.id);
-      if (s > maxScore) {
-        maxScore = s;
+      final avg = averageFor(p.id);
+      final rank = mvpRankFor(p.id, avg);
+      if (rank > maxRank) {
+        maxRank = rank;
+        maxAvg = avg;
         maxPlayerId = p.id;
       }
     }
 
     return _RatingCardData(
-      myScore: scoreFor(uid),
-      isMvp: uid == maxPlayerId,
+      myAverage: averageFor(uid),
+      isMvp: uid == maxPlayerId && maxAvg > 0.0,
     );
   }
 }
 
 class _RatingCardData {
-  const _RatingCardData({required this.myScore, required this.isMvp});
+  const _RatingCardData({required this.myAverage, required this.isMvp});
 
-  final double myScore;
+  final double myAverage;
   final bool isMvp;
 }

@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../core/models/app_user.dart';
 import '../../core/services/firestore_service.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/widgets/sello_trofeo.dart';
+import '../common/app_bottom_nav.dart';
+
+const _colorFondoBeige = Color(0xFFF1D28A);
+const _colorAcentoBeige = Color(0xFFE0A136);
 
 const _temporadaActualLabel = '26/27 (Actual)';
 
@@ -49,7 +54,8 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
         }
         if (user == null || !_historicoCargado) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            backgroundColor: _colorFondoBeige,
+            body: Center(child: CircularProgressIndicator(color: Colors.black)),
           );
         }
         final u = user;
@@ -77,12 +83,26 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
                     ? u.valoracion
                     : (datosTemporada?['valoracion'] as num?)?.toDouble() ??
                         0.0;
-            final asistencia =
+            final titulosMostrar =
                 esActual
-                    ? (total > 0
-                        ? ((pjMostrar / total) * 100).round().clamp(0, 100)
-                        : 0)
-                    : (pjMostrar > 0 ? 100 : 0);
+                    ? u.listaTitulos
+                    : ((datosTemporada?['listaTitulos'] as List<dynamic>?)
+                            ?.whereType<String>()
+                            .toList() ??
+                        const <String>[]);
+            final totalTemporada =
+                esActual
+                    ? total
+                    : (datosTemporada?['totalPartidosPenaAnual'] as num?)
+                            ?.toInt() ??
+                        0;
+            final asistencia =
+                totalTemporada > 0
+                    ? ((pjMostrar / totalTemporada) * 100).round().clamp(
+                      0,
+                      100,
+                    )
+                    : 0;
             final particip = golesMostrar + asistMostrar;
             final age =
                 u.fechaNacimiento.isNotEmpty
@@ -91,7 +111,20 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
             final temporadas = [_temporadaActualLabel, ..._historico.keys];
 
             return Scaffold(
-              appBar: AppBar(title: Text(u.nombre.toUpperCase())),
+              backgroundColor: _colorFondoBeige,
+              appBar: AppBar(
+                backgroundColor: _colorFondoBeige,
+                foregroundColor: Colors.black,
+                elevation: 0,
+                title: Text(
+                  u.nombre.toUpperCase(),
+                  style: const TextStyle(
+                    fontFamily: AppTheme.oswald,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
               body: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
@@ -107,6 +140,13 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
                           color: const Color(0xFFC2A679),
                           width: 2,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child:
                           u.fotoUrl.trim().isNotEmpty
@@ -169,19 +209,20 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
                       _Item('Particip.', '$particip'),
                     ],
                   ),
-                  if (u.listaTitulos.isNotEmpty) ...[
+                  if (titulosMostrar.isNotEmpty) ...[
                     const Padding(
                       padding: EdgeInsets.only(top: 28, bottom: 12, left: 4),
                       child: Text(
                         'PASAPORTE DE SELLOS',
                         style: TextStyle(
+                          fontFamily: AppTheme.oswald,
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
                           letterSpacing: 1,
                         ),
                       ),
                     ),
-                    _PasaporteSellos(titulos: u.listaTitulos),
+                    _PasaporteSellos(titulos: titulosMostrar),
                   ],
                 ],
               ),
@@ -237,10 +278,35 @@ class _Tag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: dark ? const Color(0xFFC2A679) : Colors.white,
-        border: Border.all(color: const Color(0xFFC2A679)),
+        color: dark ? null : Colors.white,
+        gradient:
+            dark
+                ? const LinearGradient(
+                  colors: [Color(0xFFD4AF37), Color(0xFFFDE08B)],
+                )
+                : null,
+        border: Border.all(
+          color: dark ? Colors.black : _colorAcentoBeige,
+        ),
+        boxShadow:
+            dark
+                ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+                : null,
       ),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w800)),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontFamily: AppTheme.oswald,
+          fontWeight: FontWeight.w800,
+          color: dark ? Colors.black : Colors.black87,
+        ),
+      ),
     );
   }
 }
@@ -264,7 +330,12 @@ class _StatsGrid extends StatelessWidget {
       itemCount: items.length,
       itemBuilder: (context, i) {
         final it = items[i];
-        return Card(
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _colorAcentoBeige.withValues(alpha: 0.6)),
+          ),
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -272,8 +343,10 @@ class _StatsGrid extends StatelessWidget {
                 Text(
                   it.value,
                   style: const TextStyle(
+                    fontFamily: AppTheme.oswald,
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
+                    color: Color(0xFF1A1A1A),
                   ),
                 ),
                 Text(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
+import '../common/app_bottom_nav.dart';
 
 class VotarPartidoScreen extends StatefulWidget {
   const VotarPartidoScreen({super.key, required this.matchId});
@@ -25,7 +26,10 @@ class _VotarPartidoScreenState extends State<VotarPartidoScreen> {
       builder: (context, snapshot) {
         final match = snapshot.data;
         if (match == null) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            bottomNavigationBar: AppBottomNavBar(selectedIndex: -1),
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
         final uid = _service.currentUid;
@@ -44,14 +48,15 @@ class _VotarPartidoScreenState extends State<VotarPartidoScreen> {
 
         if (alreadyVoted || !withinWindow) {
           return Scaffold(
-            appBar: AppBar(title: const Text('VALORAR COMPANEROS')),
+            appBar: AppBar(title: const Text('VALORAR COMPAÑEROS')),
+            bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
                   alreadyVoted
-                      ? 'Ya has enviado tu valoracion para este partido.'
-                      : 'La ventana de valoracion (72h) ya ha expirado.',
+                      ? 'Ya has enviado tu valoración para este partido.'
+                      : 'La ventana de valoración (72h) ya ha expirado.',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -89,18 +94,29 @@ class _VotarPartidoScreenState extends State<VotarPartidoScreen> {
             }
 
             return Scaffold(
-              appBar: AppBar(title: const Text('VALORAR COMPANEROS')),
-              bottomNavigationBar: Padding(
-                padding: const EdgeInsets.all(16),
-                child: FilledButton(
-                  onPressed: _saving ? null : save,
-                  child: _saving ? const CircularProgressIndicator() : const Text('ENVIAR VALORACIONES'),
-                ),
+              appBar: AppBar(title: const Text('VALORAR COMPAÑEROS')),
+              bottomNavigationBar: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: FilledButton(
+                      onPressed: _saving ? null : save,
+                      child:
+                          _saving
+                              ? const CircularProgressIndicator()
+                              : const Text('ENVIAR VALORACIONES'),
+                    ),
+                  ),
+                  const AppBottomNavBar(selectedIndex: -1),
+                ],
               ),
               body: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  const Text('Puntua a tus companeros y rivales. Esto afecta a su media historica.'),
+                  const Text(
+                    'Puntúa a tus compañeros. Sé justo, esto afecta a su media histórica.',
+                  ),
                   const SizedBox(height: 10),
                   ...players.map((p) {
                     final score = _ratings[p.id] ?? 3.0;

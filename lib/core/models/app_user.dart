@@ -15,6 +15,7 @@ class AppUser {
     required this.rol,
     required this.puntosDefensivos,
     this.listaTitulos = const [],
+    this.activo = true,
   });
 
   final String id;
@@ -32,6 +33,9 @@ class AppUser {
   final String rol;
   final int puntosDefensivos;
   final List<String> listaTitulos;
+  final bool activo;
+
+  bool get isAdmin => rol == 'admin';
 
   factory AppUser.fromMap(String id, Map<String, dynamic> data) {
     return AppUser(
@@ -53,6 +57,7 @@ class AppUser {
           (data['titulos_2026'] as List<dynamic>? ?? [])
               .whereType<String>()
               .toList(),
+      activo: (data['activo'] as bool?) ?? true,
     );
   }
 

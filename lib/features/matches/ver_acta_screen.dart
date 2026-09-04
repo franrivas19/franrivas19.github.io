@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/models/app_user.dart';
 import '../../core/models/lineup_player.dart';
 import '../../core/models/match_model.dart';
 import '../../core/models/player_stat.dart';
@@ -34,12 +33,17 @@ class VerActaScreen extends StatelessWidget {
         final stats = [...match.estadisticasJugadores]
           ..sort((a, b) => a.equipo.compareTo(b.equipo));
 
-        return StreamBuilder<List<AppUser>>(
-          stream: service.allUsers(),
-          builder: (context, usersSnap) {
-            final usersById = {
-              for (final user in usersSnap.data ?? const <AppUser>[]) user.id: user,
-            };
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream:
+              _db
+                  .collection('partidos')
+                  .doc(matchId)
+                  .collection('votos')
+                  .snapshots(),
+          builder: (context, votesSnap) {
+            final voteAverages = _voteAveragesFromFirestore(
+              votesSnap.data?.docs ?? const [],
+            );
 
             return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream:
@@ -66,7 +70,7 @@ class VerActaScreen extends StatelessWidget {
                       onPressed: () => context.pop(),
                     ),
                   ),
-                  bottomNavigationBar: const AppBottomNavBar(selectedIndex: 2),
+                  bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
                   body: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
                     children: [
@@ -76,7 +80,7 @@ class VerActaScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       _buildPlantillasBoard(match, stats),
                       const SizedBox(height: 24),
-                      _buildMvpCard(match, stats, usersById),
+                      _buildMvpCard(match, stats, voteAverages),
                       const SizedBox(height: 24),
                       _buildSectionTitle('FORMACIÓN INICIAL'),
                       const SizedBox(height: 10),
@@ -92,7 +96,7 @@ class VerActaScreen extends StatelessWidget {
                       const SizedBox(height: 24),
                       _buildSectionTitle('VALORACIONES DEL DÍA'),
                       const SizedBox(height: 10),
-                      _buildRatingsBoard(match, usersById, stats),
+                      _buildRatingsBoard(match, voteAverages),
                     ],
                   ),
                 );
@@ -206,23 +210,24 @@ class VerActaScreen extends StatelessWidget {
   Widget _buildMvpCard(
     MatchModel match,
     List<PlayerStat> stats,
-    Map<String, AppUser> usersById,
+    Map<String, double> voteAverages,
   ) {
     final played = stats.where((s) => s.haJugado).toList();
     if (played.isEmpty) return const SizedBox.shrink();
 
-    // Ordenar por valoración de AppUser; en empate, por goles y asistencias
+    // Ordenar por la nota media de las votaciones de ESTE partido; en
+    // empate, por goles + asistencias (igual que Android).
     final mvp = (played.toList()
           ..sort((a, b) {
-            final ratingA = usersById[a.id]?.valoracion ?? 0.0;
-            final ratingB = usersById[b.id]?.valoracion ?? 0.0;
+            final ratingA = voteAverages[a.id] ?? 0.0;
+            final ratingB = voteAverages[b.id] ?? 0.0;
             final byRating = ratingB.compareTo(ratingA);
             if (byRating != 0) return byRating;
-            final byGoals = b.goles.compareTo(a.goles);
-            if (byGoals != 0) return byGoals;
-            return b.asistencias.compareTo(a.asistencias);
+            return (b.goles + b.asistencias).compareTo(a.goles + a.asistencias);
           }))
         .first;
+    final mvpRating = voteAverages[mvp.id] ?? 0.0;
+    if (mvpRating <= 0.0) return const SizedBox.shrink();
 
     final allPlayers = [
       ...match.alineacionDetallada1,
@@ -233,10 +238,7 @@ class VerActaScreen extends StatelessWidget {
       orElse: () => LineupPlayer(id: mvp.id, nombre: mvp.nombre),
     );
 
-    // Valoración desde AppUser; fallback a goles si no existe
-    final rating = usersById[mvp.id]?.valoracion ?? 0.0;
-    final displayValue =
-        rating > 0 ? rating.toStringAsFixed(1) : '${mvp.goles}';
+    final displayValue = mvpRating.toStringAsFixed(1);
 
     return Container(
       height: 120,
@@ -650,8 +652,7 @@ class VerActaScreen extends StatelessWidget {
 
   Widget _buildRatingsBoard(
     MatchModel match,
-    Map<String, AppUser> usersById,
-    List<PlayerStat> stats,
+    Map<String, double> voteAverages,
   ) {
     final team1 = _teamLineup(match, 1);
     final team2 = _teamLineup(match, 2);
@@ -663,7 +664,7 @@ class VerActaScreen extends StatelessWidget {
           child: _RatingsColumn(
             title: match.equipo1.toUpperCase(),
             players: team1,
-            usersById: usersById,
+            voteAverages: voteAverages,
           ),
         ),
         const SizedBox(width: 12),
@@ -671,11 +672,33 @@ class VerActaScreen extends StatelessWidget {
           child: _RatingsColumn(
             title: match.equipo2.toUpperCase(),
             players: team2,
-            usersById: usersById,
+            voteAverages: voteAverages,
           ),
         ),
       ],
     );
+  }
+
+  Map<String, double> _voteAveragesFromFirestore(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    final totals = <String, double>{};
+    final counts = <String, int>{};
+    for (final doc in docs) {
+      final rawMap = doc.data()['notas'];
+      if (rawMap is! Map) continue;
+      rawMap.forEach((key, value) {
+        final playerId = key.toString();
+        final score = (value as num?)?.toDouble();
+        if (score == null) return;
+        totals[playerId] = (totals[playerId] ?? 0) + score;
+        counts[playerId] = (counts[playerId] ?? 0) + 1;
+      });
+    }
+    return {
+      for (final id in totals.keys)
+        id: ((totals[id]! / counts[id]!) * 10).round() / 10,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -1006,6 +1029,7 @@ class _PlantillaColumn extends StatelessWidget {
           final stat = statsById[player.id];
           final goles = stat?.goles ?? 0;
           final asistencias = stat?.asistencias ?? 0;
+          final puntosDefensivos = stat?.puntosDefensivos ?? 0;
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -1028,6 +1052,14 @@ class _PlantillaColumn extends StatelessWidget {
                   const SizedBox(width: 4),
                   _StatChip(icon: '👟', value: asistencias),
                 ],
+                if (puntosDefensivos > 0) ...[
+                  const SizedBox(width: 4),
+                  _StatChip(
+                    icon: '🛡️',
+                    value: puntosDefensivos,
+                    color: const Color(0xFF2E7D32),
+                  ),
+                ],
               ],
             ),
           );
@@ -1042,17 +1074,22 @@ class _PlantillaColumn extends StatelessWidget {
 // =============================================================================
 
 class _StatChip extends StatelessWidget {
-  const _StatChip({required this.icon, required this.value});
+  const _StatChip({
+    required this.icon,
+    required this.value,
+    this.color = const Color(0xFF2A2A2A),
+  });
 
   final String icon;
   final int value;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
+        color: color,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
@@ -1083,12 +1120,12 @@ class _RatingsColumn extends StatelessWidget {
   const _RatingsColumn({
     required this.title,
     required this.players,
-    required this.usersById,
+    required this.voteAverages,
   });
 
   final String title;
   final List<LineupPlayer> players;
-  final Map<String, AppUser> usersById;
+  final Map<String, double> voteAverages;
 
   @override
   Widget build(BuildContext context) {
@@ -1106,8 +1143,7 @@ class _RatingsColumn extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         ...players.map((player) {
-          final user = usersById[player.id];
-          final rating = user?.valoracion ?? 0;
+          final rating = voteAverages[player.id] ?? 0;
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 14),
@@ -1115,7 +1151,7 @@ class _RatingsColumn extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    user?.nombre ?? player.nombre,
+                    player.nombre,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

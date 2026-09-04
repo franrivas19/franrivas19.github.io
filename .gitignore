@@ -48,3 +48,5 @@ app.*.map.json
 *.env
 lib/secret.dart
 code-android/
+gambeta.pdf
+.claude/

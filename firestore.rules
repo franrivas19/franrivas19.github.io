@@ -28,6 +28,11 @@ service cloud.firestore {
         isAdmin(request.auth.uid)
       );
       allow delete: if isAdmin(request.auth.uid);
+
+      match /temporadas_pasadas/{seasonId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin(request.auth.uid);
+      }
     }
 
     match /partidos/{partidoId} {

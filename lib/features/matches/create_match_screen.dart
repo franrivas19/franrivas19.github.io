@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/services/firestore_service.dart';
+import '../common/app_bottom_nav.dart';
 
 class CreateMatchScreen extends StatefulWidget {
   const CreateMatchScreen({super.key});
@@ -42,6 +43,33 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
     _hora.dispose();
     _ubicacion.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now.subtract(const Duration(days: 1)),
+      lastDate: DateTime(now.year + 2),
+    );
+    if (picked != null) {
+      _fecha.text =
+          '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
+      setState(() {});
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) {
+      _hora.text =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      setState(() {});
+    }
   }
 
   Future<void> _create() async {
@@ -125,14 +153,24 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
               Expanded(
                 child: TextField(
                   controller: _fecha,
-                  decoration: const InputDecoration(labelText: 'Fecha (DD/MM)'),
+                  readOnly: true,
+                  onTap: _pickDate,
+                  decoration: const InputDecoration(
+                    labelText: 'Fecha',
+                    suffixIcon: Icon(Icons.calendar_month),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
                   controller: _hora,
-                  decoration: const InputDecoration(labelText: 'Hora (HH:MM)'),
+                  readOnly: true,
+                  onTap: _pickTime,
+                  decoration: const InputDecoration(
+                    labelText: 'Hora',
+                    suffixIcon: Icon(Icons.access_time),
+                  ),
                 ),
               ),
             ],
@@ -140,7 +178,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
           const SizedBox(height: 10),
           TextField(
             controller: _ubicacion,
-            decoration: const InputDecoration(labelText: 'Ubicacion'),
+            decoration: const InputDecoration(labelText: 'Ubicación'),
           ),
           const SizedBox(height: 30),
           FilledButton(
@@ -148,10 +186,11 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
             child:
                 _loading
                     ? const CircularProgressIndicator()
-                    : const Text('Publicar partido'),
+                    : const Text('Publicar Partido'),
           ),
         ],
       ),
+      bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
     );
   }
 }

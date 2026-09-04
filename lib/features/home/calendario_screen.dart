@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
 import '../../core/utils/date_utils.dart';
+import '../common/app_bottom_nav.dart';
 
 enum _CalendarView { semana, mes, ano }
 
@@ -35,6 +36,7 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
         backgroundColor: _black,
         foregroundColor: Colors.white,
       ),
+      bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
       body: StreamBuilder<List<MatchModel>>(
         stream: _service.allMatchesStream(),
         builder: (context, snapshot) {
@@ -242,7 +244,7 @@ class _Tabs extends StatelessWidget {
               final label = switch (view) {
                 _CalendarView.semana => 'SEMANA',
                 _CalendarView.mes => 'MES',
-                _CalendarView.ano => 'ANO',
+                _CalendarView.ano => 'AÑO',
               };
 
               return Expanded(
@@ -513,7 +515,7 @@ class _AgendaList extends StatelessWidget {
                       child: Padding(
                         padding: EdgeInsets.all(24),
                         child: Text(
-                          'No hay partidos programados para este dia.',
+                          'No hay partidos programados para este día.',
                           style: TextStyle(color: Colors.grey),
                         ),
                       ),
@@ -549,7 +551,7 @@ class _YearAgenda extends StatelessWidget {
     if (matches.isEmpty) {
       return const Center(
         child: Text(
-          'Aun no hay partidos en el registro.',
+          'Aún no hay partidos en el registro.',
           style: TextStyle(color: Colors.grey),
         ),
       );

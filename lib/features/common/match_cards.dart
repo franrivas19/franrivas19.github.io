@@ -55,7 +55,11 @@ class _ProximoPartidoCardState extends State<ProximoPartidoCard> {
   @override
   Widget build(BuildContext context) {
     final remaining = _remaining;
-    final started = remaining != null && remaining.isNegative;
+    final live = widget.match.estado == 'En Juego';
+    final minute =
+        (widget.match.indiceTurno * 6) +
+        ((360 - widget.match.tiempoSegundos) ~/ 60) +
+        1;
 
     return Card(
       elevation: 8,
@@ -64,13 +68,20 @@ class _ProximoPartidoCardState extends State<ProximoPartidoCard> {
         borderRadius: BorderRadius.circular(24),
         onTap: widget.onTap,
         child: Container(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.all(Radius.circular(24)),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF222222), Colors.black],
-            ),
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.all(Radius.circular(24)),
+            gradient:
+                live
+                    ? const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFF7A1414), Color(0xFF1A0505)],
+                    )
+                    : const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFF222222), Colors.black],
+                    ),
           ),
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -81,13 +92,14 @@ class _ProximoPartidoCardState extends State<ProximoPartidoCard> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.dorado.withValues(alpha: 0.2),
+                  color: (live ? Colors.redAccent : AppColors.dorado)
+                      .withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Text(
-                  'PROXIMO ENCUENTRO',
+                child: Text(
+                  live ? '🔴 PARTIDO EN DIRECTO' : 'PRÓXIMO PARTIDO',
                   style: TextStyle(
-                    color: AppColors.dorado,
+                    color: live ? Colors.redAccent : AppColors.dorado,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1,
                     fontSize: 11,
@@ -103,17 +115,39 @@ class _ProximoPartidoCardState extends State<ProximoPartidoCard> {
                       color: widget.match.color1,
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                      color: AppColors.dorado,
-                      shape: BoxShape.circle,
+                  if (live)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.dorado),
+                      ),
+                      child: Text(
+                        '${widget.match.goles1} - ${widget.match.goles2}',
+                        style: const TextStyle(
+                          fontFamily: AppTheme.oswald,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 20,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: AppColors.dorado,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Text(
+                        'VS',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
                     ),
-                    child: const Text(
-                      'VS',
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ),
                   Expanded(
                     child: _TeamBlock(
                       name: widget.match.equipo2,
@@ -123,10 +157,10 @@ class _ProximoPartidoCardState extends State<ProximoPartidoCard> {
                 ],
               ),
               const SizedBox(height: 18),
-              if (started)
-                const Text(
-                  'EL PARTIDO ESTA EN JUEGO',
-                  style: TextStyle(
+              if (live)
+                Text(
+                  "Minuto $minute'",
+                  style: const TextStyle(
                     color: Colors.redAccent,
                     fontWeight: FontWeight.w900,
                   ),

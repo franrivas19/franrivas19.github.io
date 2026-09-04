@@ -19,6 +19,7 @@ class AppColors {
       case 'Blanco':
         return Colors.white;
       case 'Negro':
+      case 'Oscuro':
         return Colors.black;
       case 'Morado':
         return const Color(0xFF8E24AA);

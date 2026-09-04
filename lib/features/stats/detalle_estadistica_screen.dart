@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
+import '../common/app_bottom_nav.dart';
 
 class DetalleEstadisticaScreen extends StatelessWidget {
   const DetalleEstadisticaScreen({super.key, required this.tipo});
@@ -12,20 +14,31 @@ class DetalleEstadisticaScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final service = FirestoreService();
     final uid = service.currentUid;
-    final title = tipo == 'asistencias' ? 'HISTORIAL DE ASISTENCIAS' : 'HISTORIAL DE GOLES';
+    final title = tipo == 'asistencias' ? 'MIS ASISTENCIAS' : 'MIS GOLES';
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      backgroundColor: const Color(0xFF111111),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF111111),
+        foregroundColor: Colors.white,
+        title: Text(title),
+      ),
+      bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
       body: StreamBuilder<List<MatchModel>>(
         stream: service.contributionMatches(uid: uid, type: tipo),
         builder: (context, snapshot) {
           final matches = snapshot.data ?? const <MatchModel>[];
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFFC2A679)),
+            );
           }
           if (matches.isEmpty) {
             return const Center(
-              child: Text('No hay contribuciones para este filtro.'),
+              child: Text(
+                'No hay contribuciones para este filtro.',
+                style: TextStyle(color: Colors.white70),
+              ),
             );
           }
 
@@ -39,9 +52,14 @@ class DetalleEstadisticaScreen extends StatelessWidget {
               final contribution = tipo == 'asistencias' ? mine.asistencias : mine.goles;
               final metricName = tipo == 'asistencias' ? 'Asistencias' : 'Goles';
 
-              return Container(
+              return Material(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(18),
+                child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () => context.push('/ver-acta/${m.id}'),
+                child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: const Color(0xFF2A2A2A)),
                 ),
@@ -97,6 +115,8 @@ class DetalleEstadisticaScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+                ),
                 ),
               );
             },

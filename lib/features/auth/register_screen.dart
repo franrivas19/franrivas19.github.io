@@ -74,7 +74,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       return false;
     }
     final now = DateTime.now();
-    if (year < now.year - 100 || year > now.year - 3) {
+    if (year < 1900 || year > now.year) {
       return false;
     }
     final daysInMonth = DateTime(year, month + 1, 0).day;
@@ -325,7 +325,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                             width: double.infinity,
                             child: TextButton(
                               onPressed: () => context.pop(),
-                              child: const Text('Ya tengo cuenta'),
+                              child: const Text('¿Ya tienes ficha? Inicia sesión'),
                             ),
                           ),
                         ],

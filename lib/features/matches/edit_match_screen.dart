@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import '../../core/models/app_user.dart';
 import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
+import '../../core/utils/app_colors.dart';
 import '../../core/utils/date_utils.dart';
+import '../common/app_bottom_nav.dart';
 
 class EditMatchScreen extends StatefulWidget {
   const EditMatchScreen({super.key, required this.matchId});
@@ -71,6 +73,7 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
             final match = matchSnap.data;
             if (match == null) {
               return const Scaffold(
+                bottomNavigationBar: AppBottomNavBar(selectedIndex: -1),
                 body: Center(child: CircularProgressIndicator()),
               );
             }
@@ -81,7 +84,11 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                 final started = isMatchStarted(match.fecha, match.hora);
                 final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
                 final canManage =
-                    (user?.rol == 'admin') || uid == match.adminPartido;
+                    (user?.isAdmin ?? false) || uid == match.adminPartido;
+                final color1 = AppColors.fromColorName(match.color1);
+                final color2 = AppColors.fromColorName(match.color2);
+                final textLight1 = color1.computeLuminance() < 0.5;
+                final textLight2 = color2.computeLuminance() < 0.5;
 
                 if (_loadedMatchId != match.id) {
                   _guests = match.invitados;
@@ -116,40 +123,44 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
 
                 return Scaffold(
                   appBar: AppBar(title: const Text('CONVOCATORIA')),
-                  bottomNavigationBar:
-                      started
-                          ? null
-                          : Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (!teamsReady)
-                                  const Padding(
-                                    padding: EdgeInsets.only(bottom: 8),
-                                    child: Text(
-                                      'Cada equipo necesita al menos 5 jugadores.',
-                                      style: TextStyle(
-                                        color: Color(0xFFD32F2F),
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                  bottomNavigationBar: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!started)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (!teamsReady)
+                                const Padding(
+                                  padding: EdgeInsets.only(bottom: 8),
+                                  child: Text(
+                                    'Cada equipo necesita al menos 5 jugadores.',
+                                    style: TextStyle(
+                                      color: Color(0xFFD32F2F),
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                FilledButton(
-                                  onPressed:
-                                      _saving || !teamsReady
-                                          ? null
-                                          : () => save(context, match, users),
-                                  child:
-                                      _saving
-                                          ? const CircularProgressIndicator()
-                                          : const Text(
-                                            'CONFIRMAR ALINEACIONES',
-                                          ),
                                 ),
-                              ],
-                            ),
+                              FilledButton(
+                                onPressed:
+                                    _saving || !teamsReady
+                                        ? null
+                                        : () => save(context, match, users),
+                                child:
+                                    _saving
+                                        ? const CircularProgressIndicator()
+                                        : const Text(
+                                          'CONFIRMAR ALINEACIONES',
+                                        ),
+                              ),
+                            ],
                           ),
+                        ),
+                      const AppBottomNavBar(selectedIndex: -1),
+                    ],
+                  ),
                   body: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
@@ -175,7 +186,8 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                           _counter(
                             match.equipo1.toUpperCase(),
                             assignments.values.where((v) => v == 1).length,
-                            const Color(0xFFD5E5B5),
+                            color1,
+                            textLight: textLight1,
                           ),
                           _counter(
                             'BANQUILLO',
@@ -185,13 +197,13 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                           _counter(
                             match.equipo2.toUpperCase(),
                             assignments.values.where((v) => v == 2).length,
-                            const Color(0xFF312E2E),
-                            textLight: true,
+                            color2,
+                            textLight: textLight2,
                           ),
                         ],
                       ),
                       const SizedBox(height: 14),
-                      if (user?.rol == 'admin' && !started)
+                      if ((user?.isAdmin ?? false) && !started)
                         DropdownButtonFormField<String>(
                           initialValue: adminId.isEmpty ? null : adminId,
                           items:
@@ -267,9 +279,9 @@ class _EditMatchScreenState extends State<EditMatchScreen> {
                                       .toUpperCase(),
                               color:
                                   status == 1
-                                      ? const Color(0xFFD5E5B5)
+                                      ? color1
                                       : (status == 2
-                                          ? const Color(0xFF312E2E)
+                                          ? color2
                                           : Colors.grey.shade300),
                               selected: status != 0,
                             ),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/services/firestore_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../common/app_bottom_nav.dart';
 import '../common/avatar_jugador.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -58,6 +59,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _save() async {
     final uid = _service.currentUid;
     if (uid.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Error: Sesión no iniciada')));
       return;
     }
     setState(() => _loading = true);
@@ -65,7 +69,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await _service.updateProfile(
         uid: uid,
         nombre: _nombreCtrl.text.trim(),
-        correo: _correoCtrl.text.trim(),
         fechaNacimiento: _fechaCtrl.text.trim(),
         posicion: _posicion,
         fotoUrl: _fotoCtrl.text.trim(),
@@ -93,6 +96,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('EDITAR PERFIL')),
+      bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
       body: StreamBuilder(
         stream: _service.currentUserProfile(),
         builder: (context, snapshot) {
@@ -117,10 +121,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             padding: const EdgeInsets.all(20),
             children: [
               Center(
-                child: AvatarJugador(
-                  nombre: _nombreCtrl.text,
-                  fotoUrl: _fotoCtrl.text,
-                  size: 120,
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    AvatarJugador(
+                      nombre: _nombreCtrl.text,
+                      fotoUrl: _fotoCtrl.text,
+                      size: 120,
+                    ),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: AppTheme.vipGold,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.edit,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Center(
+                child: Text(
+                  'El avatar se genera automáticamente',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ),
               const SizedBox(height: 24),
@@ -133,20 +163,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextField(
                 controller: _fotoCtrl,
                 style: const TextStyle(color: Colors.black),
-                decoration: _buildInputDecoration('Enlace de foto (URL)'),
+                decoration: _buildInputDecoration(
+                  'Enlace de la foto (URL)',
+                ).copyWith(hintText: 'Ej: https://imgur.com/foto.png'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _correoCtrl,
                 style: const TextStyle(color: Colors.black),
-                decoration: _buildInputDecoration('Correo'),
+                decoration: _buildInputDecoration('Correo Electrónico'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _fechaCtrl,
                 style: const TextStyle(color: Colors.black),
                 decoration: _buildInputDecoration(
-                  'Fecha nacimiento (DD/MM/AAAA)',
+                  'Fecha de Nacimiento (DD/MM/AAAA)',
                 ),
               ),
               const SizedBox(height: 12),
@@ -159,8 +191,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   DropdownMenuItem(value: 'Portero', child: Text('Portero')),
                   DropdownMenuItem(value: 'Cierre', child: Text('Cierre')),
                   DropdownMenuItem(value: 'Ala', child: Text('Ala')),
-                  DropdownMenuItem(value: 'Pívot', child: Text('Pivot')),
-                  DropdownMenuItem(value: 'Comodín', child: Text('Comodin')),
+                  DropdownMenuItem(value: 'Pívot', child: Text('Pívot')),
+                  DropdownMenuItem(value: 'Comodín', child: Text('Comodín')),
                   DropdownMenuItem(
                     value: 'Sin definir',
                     child: Text('Sin definir'),
@@ -171,7 +203,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     setState(() => _posicion = v);
                   }
                 },
-                decoration: _buildInputDecoration('Posicion preferida'),
+                decoration: _buildInputDecoration('Posición preferida'),
               ),
               const SizedBox(height: 26),
               FilledButton(
@@ -181,7 +213,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ? const CircularProgressIndicator(
                           color: AppTheme.vipBlack,
                         )
-                        : const Text('Guardar cambios'),
+                        : const Text('Guardar Cambios'),
               ),
             ],
           );

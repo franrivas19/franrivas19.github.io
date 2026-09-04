@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/models/app_user.dart';
 import '../../core/services/firestore_service.dart';
+import '../common/app_bottom_nav.dart';
+import '../common/avatar_jugador.dart';
 
 class PlantillaScreen extends StatelessWidget {
   const PlantillaScreen({super.key});
@@ -14,14 +16,18 @@ class PlantillaScreen extends StatelessWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => context.go('/resumen'),
+          onPressed:
+              () =>
+                  context.canPop() ? context.pop() : context.go('/resumen'),
         ),
         title: const Text('LA PLANTILLA', style: TextStyle(fontSize: 16)),
       ),
+      bottomNavigationBar: const AppBottomNavBar(selectedIndex: 1),
       body: StreamBuilder<List<AppUser>>(
         stream: service.allUsers(),
         builder: (context, snapshot) {
-          final users = snapshot.data ?? [];
+          final users =
+              (snapshot.data ?? []).where((u) => u.activo).toList();
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -113,7 +119,7 @@ class _Fallback extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
     return Container(
-      color: const Color(0xFF1E88E5),
+      color: AvatarJugador.fallbackColorFor(name),
       alignment: Alignment.center,
       child: Text(
         initial,

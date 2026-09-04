@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/models/lineup_player.dart';
 import '../../core/models/match_model.dart';
 import '../../core/services/firestore_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../common/app_bottom_nav.dart';
 
 class LiveScoreScreen extends StatefulWidget {
   const LiveScoreScreen({super.key, required this.matchId});
@@ -35,6 +37,7 @@ class _LiveScoreScreenState extends State<LiveScoreScreen> {
     if (previous != null && currentCount > previous && events.isNotEmpty) {
       final latest = [...events]
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      HapticFeedback.vibrate();
       setState(() => _goalOverlayName = latest.last.scorerName.toUpperCase());
       _overlayTimer?.cancel();
       _overlayTimer = Timer(const Duration(seconds: 3), () {
@@ -79,6 +82,7 @@ class _LiveScoreScreenState extends State<LiveScoreScreen> {
                   icon: const Icon(Icons.arrow_back),
                 ),
               ),
+              bottomNavigationBar: const AppBottomNavBar(selectedIndex: -1),
               body: Stack(
                 children: [
                   ListView(
@@ -86,7 +90,7 @@ class _LiveScoreScreenState extends State<LiveScoreScreen> {
                     children: [
                       _ScoreCard(match: match),
                       const SizedBox(height: 20),
-                      const _SectionLabel('PORTEROS ACTUALES'),
+                      const _SectionLabel('🧤 PORTEROS ACTUALES'),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -114,7 +118,7 @@ class _LiveScoreScreenState extends State<LiveScoreScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      const _SectionLabel('CRONOLOGIA'),
+                      const _SectionLabel('⏱️ CRONOLOGÍA'),
                       const SizedBox(height: 8),
                       _TimelineCard(events: events),
                     ],
@@ -251,7 +255,7 @@ class _ScoreCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                live ? 'EN DIRECTO' : 'PARTIDO FINALIZADO',
+                live ? '🔴 EN DIRECTO' : 'PARTIDO FINALIZADO',
                 style: const TextStyle(
                   color: Color(0xFF43A047),
                   fontSize: 11,
@@ -383,7 +387,7 @@ class _TimelineCard extends StatelessWidget {
                 ? const Padding(
                   padding: EdgeInsets.all(8),
                   child: Text(
-                    'Esperando eventos... Que ruede el balon.',
+                    'Esperando eventos... ¡Que ruede el balón!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.grey,
@@ -484,7 +488,7 @@ class _GoalOverlay extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'GOOOOL!',
+                  '¡GOOOOL!',
                   style: TextStyle(
                     fontFamily: AppTheme.oswald,
                     color: Color(0xFFC2A679),

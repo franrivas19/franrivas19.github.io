@@ -141,6 +141,11 @@ jobs:
             echo "Sin cambios en docs/app/"
           fi
 
+      - name: Comprimir build web
+        run: |
+          cd docs/app
+          zip -r ../../scarpa-web-build.zip .
+
       - name: Crear release y adjuntar artefactos
         uses: softprops/action-gh-release@v2
         with:
@@ -152,4 +157,4 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            docs/app/**
+            scarpa-web-build.zip

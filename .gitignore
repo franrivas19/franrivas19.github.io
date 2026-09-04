@@ -50,3 +50,9 @@ lib/secret.dart
 code-android/
 gambeta.pdf
 .claude/
+
+# Node (firestore-tests/)
+node_modules/
+firestore-debug.log
+firebase-debug.log
+ui-debug.log

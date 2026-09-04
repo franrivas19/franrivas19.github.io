@@ -20,12 +20,69 @@ service cloud.firestore {
       );
     }
 
+    // Campos agregados de estadísticas: los únicos que un cierre de acta o
+    // una votación pueden tocar en el documento de OTRO jugador. Todo lo
+    // identitario (rol, nombre, correo, fotoUrl, posicion, titulos_2026)
+    // queda fuera de esta vía y solo lo puede cambiar el propio dueño o un
+    // admin global.
+    function statChanged(campo) {
+      return campo in request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function statSubeComoMucho(campo, tope) {
+      return !statChanged(campo) || (
+        request.resource.data[campo] is number &&
+        resource.data[campo] is number &&
+        request.resource.data[campo] >= resource.data[campo] &&
+        request.resource.data[campo] - resource.data[campo] <= tope
+      );
+    }
+
+    function esActualizacionDeEstadisticas() {
+      let camposPermitidos = [
+        'pj', 'goles', 'asistencias', 'puntosDefensivos',
+        'totalEstrellas', 'votosRecibidos', 'valoracion'
+      ];
+      let cambiados = request.resource.data.diff(resource.data).affectedKeys();
+      return isSignedIn()
+        && cambiados.size() > 0
+        && cambiados.hasOnly(camposPermitidos)
+        // Un cierre de acta suma como mucho 1 partido, y unos pocos
+        // goles/asistencias/puntos defensivos por partido. Una votación
+        // suma como mucho una nota (0-5) y un voto recibido.
+        && statSubeComoMucho('pj', 1)
+        && statSubeComoMucho('goles', 20)
+        && statSubeComoMucho('asistencias', 20)
+        && statSubeComoMucho('puntosDefensivos', 300)
+        && statSubeComoMucho('totalEstrellas', 5)
+        && statSubeComoMucho('votosRecibidos', 1)
+        && (!statChanged('valoracion') || (
+          request.resource.data.valoracion is number &&
+          request.resource.data.valoracion >= 0 &&
+          request.resource.data.valoracion <= 10
+        ));
+    }
+
+    // Marcar que uno mismo ha votado un partido: solo puede tocar
+    // `hanVotado`, y solo para añadir el propio uid.
+    function esMarcaDeVotoPropia() {
+      let cambiados = request.resource.data.diff(resource.data).affectedKeys();
+      return isSignedIn()
+        && cambiados.hasOnly(['hanVotado'])
+        && !(request.auth.uid in resource.data.hanVotado)
+        && request.auth.uid in request.resource.data.hanVotado;
+    }
+
     match /usuarios/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.rol == 'jugador';
+      // El doc del "invitado global" (jugadores invitados sin cuenta) no
+      // lleva `rol`; se crea la primera vez que un invitado marca un gol.
+      allow create: if isSignedIn() && userId == 'invitado_global';
       allow update: if isSignedIn() && (
         (request.auth.uid == userId && request.resource.data.rol == resource.data.rol) ||
-        isAdmin(request.auth.uid)
+        isAdmin(request.auth.uid) ||
+        esActualizacionDeEstadisticas()
       );
       allow delete: if isAdmin(request.auth.uid);
 
@@ -37,8 +94,16 @@ service cloud.firestore {
 
     match /partidos/{partidoId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.adminPartido == request.auth.uid;
-      allow update: if isMatchAdmin(partidoId);
+      // Solo un admin global puede crear partidos (coincide con lo que ya
+      // muestran ambas apps en su UI). Evita que cualquiera se fabrique un
+      // partido propio y se autoasigne como administrador de él.
+      allow create: if isAdmin(request.auth.uid) && request.resource.data.adminPartido == request.auth.uid;
+      // Una vez Finalizado, solo un admin global puede volver a tocarlo:
+      // impide que un cierre de acta duplicado (doble pulsación, reintento
+      // de red, dos personas cerrando a la vez) vuelva a aplicar los
+      // incrementos de estadísticas.
+      allow update: if isMatchAdmin(partidoId) && (resource.data.estado != 'Finalizado' || isAdmin(request.auth.uid));
+      allow update: if esMarcaDeVotoPropia();
       allow delete: if isAdmin(request.auth.uid);
 
       match /votos/{votoId} {

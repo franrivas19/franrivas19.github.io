@@ -1,0 +1,13 @@
+{
+  "name": "scarpa-firestore-rules-tests",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Tests de firestore.rules contra el emulador local de Firestore",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project scarpa-rules-test \"node rules.test.js\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.0.0"
+  }
+}
